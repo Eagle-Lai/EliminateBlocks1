@@ -1,0 +1,13 @@
+{
+  /* Base configuration. Do not edit this field. */
+  "extends": "./temp/tsconfig.cocos.json",
+
+  /* Add your custom configuration here. */
+  "compilerOptions": {
+    "strict": false,
+    /* 引擎自带的 cc.d.ts 未做到完全自洽（GPU/WebXR 等可选类型），跳过库检查 */
+    "skipLibCheck": true
+  },
+  /* 单测跑在 Node 上（npx tsx），不参与引擎工程编译 */
+  "exclude": ["tests", "node_modules", "library", "temp", "build"]
+}

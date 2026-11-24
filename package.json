@@ -1,0 +1,20 @@
+{
+  "name": "EliminateBlocks",
+  "uuid": "36e082e2-7ca4-4123-899b-5c0dd5121e0a",
+  "creator": {
+    "version": "3.8.8"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.18.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.5.4"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx tests/core.test.ts",
+    "smoke": "node scripts/smoke.cjs",
+    "serve:build": "python -m http.server 8123 --directory build/web-mobile",
+    "mcp:check": "node scripts/mcp-check.cjs",
+    "mcp:call": "node scripts/mcp-call.cjs"
+  }
+}
