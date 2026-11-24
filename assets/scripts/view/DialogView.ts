@@ -4,6 +4,7 @@ import { UIView } from '../ui/UIView';
 import { UIButton } from '../ui/UIButton';
 import { StarRowView } from './StarRowView';
 import { setActive, setLabel } from './ViewUtils';
+import { playClip } from '../utils/Anim';
 
 const { ccclass, property } = _decorator;
 
@@ -66,9 +67,11 @@ export class DialogView extends UIView {
         if (this.card) {
             const op = this.card.getComponent(UIOpacity) || this.card.addComponent(UIOpacity);
             op.opacity = 0;
-            this.card.setScale(0.88, 0.88, 1);
             tween(op).to(0.16, { opacity: 255 }).start();
-            tween(this.card).to(0.22, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
+            playClip(this.card, 'dialog-in', () => {
+                this.card!.setScale(0.88, 0.88, 1);
+                tween(this.card!).to(0.22, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
+            });
         }
         if (this.mask) {
             const mop = this.mask.getComponent(UIOpacity) || this.mask.addComponent(UIOpacity);

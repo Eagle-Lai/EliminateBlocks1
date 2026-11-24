@@ -32,6 +32,7 @@ export class RunContext {
     groupCount = 0;
     lockCount = 0;
     burstsUsed = 0;
+    undoUsed = 0;
     lastLockAt = 0;
     elapsedMs = 0;
     shieldsUsed = 0;
@@ -54,6 +55,15 @@ export class RunContext {
             this.mutation = new MutationRuntime(config.mutations[0], config.mutationTier, this.rng);
         }
         this.sugar.reset(this.mods.startSugar);
+    }
+
+    /** 撤销快照用 */
+    get sugarValue(): number {
+        return this.sugar.value;
+    }
+
+    get sugarBursts(): number {
+        return this.sugar.bursts;
     }
 
     get mods(): ModifierSet {

@@ -9,23 +9,23 @@
 |---|---|---|---|
 | Prefab | 38 | 38 | ✅ |
 | 图片 | 100 | 100 | ✅ |
-| 图集 | 4 | 0 | ❌ 见 §6 |
+| 图集 | 4 | 4 | ✅ |
 | BGM | 8 | 8（80kbps，见 §6） | ✅ |
 | SFX | 56 | 56 | ✅ |
-| 字体 | 1 | 1（623 字形覆盖） | ✅ |
+| 字体 | 1 | 1（626 字符覆盖，已绑定到全部 Label） | ✅ |
 | 章节 | 6 | 6 | ✅ |
 | 关卡 | 120 | 120 | ✅ |
 | 每日题 | 365 | 365（84 异变日） | ✅ |
-| 动画 Clip | 6 | 0（用 tween 等价实现） | ⚠️ |
-| 主包 | ≤3.9MB | 1.86MB | ✅ |
-| 总包 | ≤10.5MB | 9.77MB | ✅ |
+| 动画 Clip | 6 | 6（已绑定到弹窗/星级/横幅/Toast/异变开场/特效） | ✅ |
+| 主包 | ≤3.9MB | 2.03MB | ✅ |
+| 总包 | ≤10.5MB | 9.94MB | ✅ |
 
 ## 2. 验收门结果
 
 | 门 | 命令 | 结果 |
 |---|---|---|
 | 类型 | `npm run typecheck` | 0 error |
-| 单测 | `npm run test` | 29 + 80 + 28 = **137 项全绿** |
+| 单测 | `npm run test` | 29 + 82 + 28 = **139 项全绿** |
 | 内容 | `npm run verify:content` | 120/365/84、每月 4 类目标、全部 verified |
 | 资源 | `npm run verify:assets` | 100 图 / 56 SFX / 8 BGM / 1 字体 / 38 Prefab / 173 个引用全命中 |
 | Prefab | `npm run verify:prefabs` | 38 个根组件/命名/节点预算合规 |
@@ -33,7 +33,7 @@
 | 字体 | `npm run verify:font` | 623 字符全覆盖 |
 | 构建 | `project_build` | `web-mobile` 构建成功（debug / release 均跑通） |
 | 屏幕 | `npm run smoke:ui` | home→chapter→home→daily→settings，栈层数合规、0 页面错误 |
-| 截图 | `npm run shot:screens` | 3 关键屏 × 3 分辨率，0 页面错误 |
+| 截图 | `npm run shot:screens` | 10 屏 × 3 分辨率 = 30 张，0 页面错误 |
 | 包体 | `npm run verify:package` | 主包 1.86MB / 总包 9.77MB |
 
 ## 3. 架构落地
@@ -63,35 +63,32 @@
 
 | 项 | 体积 |
 |---|---|
-| 主包（脚本 + main/resources/internal） | **1.86MB** |
+| 主包（脚本 + main/resources/internal） | **2.03MB** |
 | 引擎 cocos-js（单列，计入总包） | 3.01MB |
 | 分包 audio-sfx | 1.26MB |
-| 分包 audio-bgm | 0.87MB |
+| 分包 audio-bgm | 1.05MB |
 | 分包 ch1–ch6 | 0.44–0.47MB / 个 |
 | 分包 daily | 0.02MB |
-| **总包** | **9.77MB** |
+| **总包** | **9.94MB** |
 
 口径说明：`cocos-js` 是引擎运行时，不计入"主包（游戏资源）"，但计入总包；
 debug 构建因引擎未压缩会显著偏大（8.71MB/14.31MB），不作为发布口径。
 
-## 6. 未完成 / 偏差（必须明说）
+## 6. 未完成 / 偏差（第二轮收口后剩 4 条）
 
-1. **自动图集 0/4**：未生成 `.pac`，Prefab 直接引用单图。资源门已改成警告；包体仍达标，但未满足 §5.1 的图集项。
-2. **字体未绑定到 Label**：子集 `font/game_sc.ttf` 已产出且覆盖校验通过，但 Prefab Label 仍用系统字体（视觉正常，未做批量 `font` 赋值）。
-3. **AnimationClip 0/6**：弹窗/星级/横幅用 tween 实现等价动效，未产出独立 `.anim`。
-4. **截图覆盖 3 屏 × 3 分辨率**（home/chapter/level）；Boot/结算/回放/天赋/选色未纳入自动截图（daily/settings 由 smoke:ui 覆盖）。
-5. **BGM 位率 80kbps**（规范 96kbps）：为把总包压进 10.5MB，重编码为 80kbps（8 首省约 0.7MB）。
-6. **天赋撤销**：`undoCharges` 与按钮已接入，但快照回滚未完成（按钮提示"已记录"）。
-7. **残局提示（P2）**：只保留 30 金币配置位与按钮，未实现首步虚影 3 秒。
-8. **回放 UI**：按快照时间轴播放；`core/ReplayPlayer.simulate` 已做确定性校验，但 UI 未做逐帧重演。
-9. **120 关 rows/stone 目标下调**：见 §4.1，属"只调 target"的合规处理，但与 §7 标称值有差异。
-10. **异变周每日题的霜雨/磁力**：求解时未模拟，仅保证"存在解"，不保证动态异变后的盘面仍最优。
+1. **BGM 位率 88kbps**（规范 96kbps）：96kbps 时总包 10.63MB 超限，折中 88kbps（总包 9.94MB）。图集再优化或删冗余资源后可升回。
+2. **异变周每日题只使用静态异变**（迷雾/倒悬/单色）：霜雨/磁力/脆霜是锁定后改盘面的动态效果，求解时不模拟，动态题可能出现「已验证解被异变打乱」，故异变周改用静态异变（84 个异变日不变，见 `scripts/gen-content/daily.ts` 注释）。
+3. **120 关 rows 目标恢复标称、stone 目标仍下调**：评测机器人加深到 120 锁后 rows 目标全部恢复 §7 标称值；stone 关因盘面与目标联动，实测仍按可达性下调（aggregate 1★ 90.3% 达标，报告逐关列出）。
+4. **撤销为"回到上一锁前"**：恢复棋盘/分数/糖能/目标计数并重新出牌，不回滚出牌源索引（重开出牌顺序会不同）；回放记录不包含 undo 动作，含撤销的对局回放会有偏差。
+
+已在上轮报告中列出、本轮已解决的：自动图集 4/4 ✅、字体绑定到全部 Label ✅、6 个 AnimationClip 产出并接入（tween 作为代码兜底）✅、截图补齐到 10 屏 × 3 分辨率 ✅、天赋撤销真生效 ✅、两个编辑器弹窗根除（Prefab 管线改直写 + 分批执行）✅。
 
 ## 7. 复现命令
 
 ```bash
 npm run gen:levels      # 120 关（约 70s）
 npm run gen:daily       # 365 题（约 3min）
+node scripts/prefabs/pipeline.js   # 38 个 Prefab（需编辑器在线）
 npm run art:gen         # 100 张图
 npm run art:meta        # 9-slice / packable
 npm run art:post        # art_report.csv

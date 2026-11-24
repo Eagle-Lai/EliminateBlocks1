@@ -46,6 +46,12 @@ export class SugarEnergy {
         return !wasFull && this.full;
     }
 
+    /** 撤销快照恢复：槽值与已释放次数 */
+    restore(value: number, bursts: number): void {
+        this._value = Math.max(0, Math.min(this.max, value));
+        this._bursts = Math.max(0, bursts);
+    }
+
     /** 直接加值（天赋/补偿） */
     bonus(amount: number): void {
         if (amount <= 0) return;

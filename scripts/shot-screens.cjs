@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * 关键屏幕 × 3 分辨率截图（§16.1 第 9 条）。
- * 前置：npm run serve:build（或任意静态服务器指向 build/web-mobile）。
+ * 关键屏幕 × 3 分辨率截图（§16.1）。
+ * 通过页面内 UIManager 直接开屏，保证可重复；前置：静态服务器指向 build/web-mobile。
  * 用法：node scripts/shot-screens.cjs [url]
  */
 const puppeteer = require('puppeteer-core');
@@ -18,16 +18,17 @@ const VIEWPORTS = [
     { name: '1280x720', w: 1280, h: 720 },
 ];
 
-async function clickDesign(page, dx, dy, designH = 1334) {
-    const rect = await page.evaluate(() => {
-        const el = document.getElementById('GameCanvas') || document.querySelector('canvas');
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        return { x: r.left, y: r.top, w: r.width, h: r.height };
-    });
-    if (!rect) return;
-    await page.mouse.click(rect.x + (dx / 750) * rect.w, rect.y + (dy / designH) * rect.h);
-}
+const OPEN = {
+    home: "cc.js.getClassByName('UIManager').instance.open('home', { coins: 120, best: 3600 })",
+    chapter: "cc.js.getClassByName('UIManager').instance.open('chapterMap', { stars: {}, chapter: 1 })",
+    daily: "cc.js.getClassByName('UIManager').instance.open('dailyPanel', { done: [3, 10], streak: 2 })",
+    settings: "cc.js.getClassByName('UIManager').instance.open('settings', { muted: false })",
+    dialog: "(async () => { const v = await cc.js.getClassByName('UIManager').instance.open('dialog'); v.show({ tag: 'LEVEL CLEAR', title: '完美通关', score: '3600', subtitle: '等级 3 · 消除 4 行 · 步数 21', stars: 3, buttons: [{ text: '下一关', kind: 'primary', onClick: () => {} }, { text: '返回首页', kind: 'secondary', onClick: () => {} }] }); })()",
+    talent: "(async () => { const v = await cc.js.getClassByName('UIManager').instance.open('talentPicker'); const offers = [{ id: 1, name: '甜度加成', desc: '所有得分 +8%', rarity: 'common', category: 'score', icon: 'talent_score', mods: {} }, { id: 13, name: '连锁大师', desc: '连锁倍率 +0.25', rarity: 'rare', category: 'score', icon: 'talent_chain', mods: {} }, { id: 25, name: '糖爆共振', desc: '糖爆分数 ×1.5', rarity: 'legendary', category: 'sugar', icon: 'talent_special', mods: {} }]; v.play(offers); })()",
+    mutationIntro: "(async () => { const v = await cc.js.getClassByName('UIManager').instance.open('mutationIntro'); v.play(1, 'standard'); })()",
+    colorPicker: "cc.js.getClassByName('UIManager').instance.open('colorPicker')",
+    replay: "cc.js.getClassByName('UIManager').instance.open('replay', { title: '最佳局 3600' })",
+};
 
 (async () => {
     fs.mkdirSync(OUT, { recursive: true });
@@ -39,35 +40,27 @@ async function clickDesign(page, dx, dy, designH = 1334) {
     let errors = 0;
     for (const vp of VIEWPORTS) {
         const page = await browser.newPage();
-        page.on('pageerror', (e) => { errors++; console.log(`[${vp.name}] pageerror`, e.message.slice(0, 160)); });
+        page.on('pageerror', (e) => { errors++; console.log('[' + vp.name + '] pageerror', e.message.slice(0, 160)); });
         await page.setViewport({ width: vp.w, height: vp.h, deviceScaleFactor: 1 });
         await page.goto(URL, { waitUntil: 'networkidle2', timeout: 60000 });
-        await sleep(6000);
-        await page.screenshot({ path: path.join(OUT, `${vp.name}-home.png`) });
+        await sleep(6500);
 
-        await clickDesign(page, 375, 717);
-        await sleep(1400);
-        await page.screenshot({ path: path.join(OUT, `${vp.name}-chapter.png`) });
-        await clickDesign(page, 375, 300); // 返回地图顶部区域不响应，点第一个关卡
-        const pos = await page.evaluate(() => {
-            const ui = cc.director.getScene().getChildByName('Canvas').getChildByName('UIRoot');
-            const map = ui.getChildByName('Layer_Panel').children.find((n) => n.name === 'ChapterMap');
-            if (!map) return null;
-            const first = map.getChildByName('LevelGrid').children[0];
-            if (!first) return null;
-            const wp = first.getWorldPosition();
-            const el = document.getElementById('GameCanvas') || document.querySelector('canvas');
-            const r = el.getBoundingClientRect();
-            return { x: r.left + (wp.x / 750) * r.width, y: r.top + ((1334 - wp.y) / 1334) * r.height };
-        });
-        if (pos) {
-            await page.mouse.click(pos.x, pos.y);
-            await sleep(4200);
-            await page.screenshot({ path: path.join(OUT, `${vp.name}-level.png`) });
+        for (const [name, code] of Object.entries(OPEN)) {
+            try {
+                await page.evaluate("cc.js.getClassByName('UIManager').instance.closeAll()");
+                await sleep(150);
+                await page.evaluate('(async () => { ' + code + ' })()');
+                await sleep(name === 'mutationIntro' ? 600 : 1400);
+                await page.screenshot({ path: path.join(OUT, vp.name + '-' + name + '.png') });
+            } catch (err) {
+                errors++;
+                console.log('[' + vp.name + '] ' + name + ' 失败：', String(err).slice(0, 160));
+            }
         }
+        await page.evaluate("cc.js.getClassByName('UIManager').instance.closeAll()");
         await page.close();
     }
     await browser.close();
-    console.log(`[shot:screens] 完成，输出 ${OUT}，页面错误 ${errors}`);
+    console.log('[shot:screens] 完成，输出 ' + OUT + '，页面错误 ' + errors);
     if (errors > 0) process.exit(1);
 })();

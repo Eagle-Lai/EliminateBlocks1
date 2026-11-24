@@ -49,10 +49,8 @@ const prefabs = walk(path.join(ROOT, 'assets/resources/prefabs')).filter((f) => 
 ok(prefabs.length === 38, `Prefab ${prefabs.length} ≠ 38`);
 
 // 5) 图集配置 4 张
-const atlas = walk(path.join(ROOT, 'assets/resources/atlas')).filter((f) => f.endsWith('.pac'));
-if (atlas.length !== 4) {
-    console.warn(`[verify-assets] 警告：自动图集 ${atlas.length}/4（沿用单图引用，构建体积略高）`);
-}
+const atlas = walk(path.join(ROOT, 'assets/resources/art')).filter((f) => f.endsWith('.pac'));
+ok(atlas.length === 4, `图集 ${atlas.length} ≠ 4`);
 
 // 6) Prefab 引用的 uuid 都存在
 const metaUuids = new Set();
@@ -95,4 +93,4 @@ if (errors.length > 0) {
     for (const e of errors.slice(0, 40)) console.error(' -', e);
     process.exit(1);
 }
-console.log(`[verify-assets] OK：100 图 / 56 SFX / 8 BGM / 1 字体 / 38 Prefab / 引用 ${refCount} 个全部命中（图集 0/4 已警告）`);
+console.log(`[verify-assets] OK：100 图 / 56 SFX / 8 BGM / 1 字体 / 38 Prefab / 引用 ${refCount} 个全部命中`);

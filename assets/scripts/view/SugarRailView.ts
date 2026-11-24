@@ -13,6 +13,7 @@ export class SugarRailView extends UIView {
     @property(Label) percentLabel: Label | null = null;
     @property(UIButton) burstBtn: UIButton | null = null;
     @property(UIButton) undoBtn: UIButton | null = null;
+    @property(UIButton) hintBtn: UIButton | null = null;
     @property(Node) talentDots: Node | null = null;
 
     private _ready = false;
@@ -71,8 +72,14 @@ export class SugarRailView extends UIView {
         this.undoBtn?.setInteractable(enabled && count > 0);
     }
 
-    bind(onBurst: () => void, onUndo: () => void): void {
+    bind(onBurst: () => void, onUndo: () => void, onHint?: () => void): void {
         if (this.burstBtn) this.burstBtn.onClick = onBurst;
         if (this.undoBtn) this.undoBtn.onClick = onUndo;
+        if (this.hintBtn && onHint) this.hintBtn.onClick = onHint;
+    }
+
+    /** 残局提示按钮：只有残局局内可见 */
+    setHintVisible(visible: boolean): void {
+        if (this.hintBtn) this.hintBtn.node.active = visible;
     }
 }

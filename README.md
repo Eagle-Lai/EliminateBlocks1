@@ -238,7 +238,7 @@ npm run art:gen       # 100 张图（程序化，色板统一）
 npm run art:meta      # 9-slice / packable
 npm run audio:synth   # 56 SFX + 8 BGM
 npm run typecheck
-npm run test          # 137 项（29 基线 + 80 玩法 + 28 内容）
+npm run test          # 139 项（29 基线 + 82 玩法 + 28 内容）
 npm run verify:all
 npm run smoke:ui      # 逐屏打开 + UI 栈断言
 npm run shot:screens  # 5 关键屏 × 3 分辨率

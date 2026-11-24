@@ -59,6 +59,8 @@ export interface RunConfig {
     star3?: number;
     /** 石块关：开局铺石块数量 */
     stoneCount?: number;
+    /** 残局提示首步（P2） */
+    hint?: { shape: number; rotation: number; x: number };
 }
 
 export interface LevelResult {
@@ -116,6 +118,7 @@ export function dailyConfig(puzzle: {
     board: string[];
     queue: PieceSpec[];
     mutationId?: number;
+    hint?: { shape: number; rotation: number; x: number };
 }): RunConfig {
     return {
         mode: 'daily',
@@ -131,6 +134,7 @@ export function dailyConfig(puzzle: {
         moveLimit: puzzle.moveLimit,
         initialBoard: puzzle.board,
         pieceQueue: puzzle.queue,
+        hint: puzzle.hint ?? undefined,
         colorCount: TUNING.board.colorCount,
         minGroupSize: TUNING.rules.minGroupSize,
         title: '每日残局',

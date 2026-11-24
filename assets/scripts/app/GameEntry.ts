@@ -255,7 +255,7 @@ export class GameEntry extends Component {
         }
         const view = await UIManager.instance?.open<ReplayView>('replay', { title: `最佳局 ${record.score}` });
         if (!view) return;
-        this._replay = new ReplayController(view, record);
+        this._replay = new ReplayController(view, record, this._frames);
         await this._replay.start();
     }
 

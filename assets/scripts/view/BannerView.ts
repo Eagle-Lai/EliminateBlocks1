@@ -2,6 +2,7 @@
 import { _decorator, Color, Label, Node, Sprite, UIOpacity, Vec3, tween } from 'cc';
 import { UIView } from '../ui/UIView';
 import { setLabel } from './ViewUtils';
+import { playClip } from '../utils/Anim';
 import { TUNING } from '../config/GameTuning';
 
 const { ccclass, property } = _decorator;
@@ -51,7 +52,10 @@ export class BannerView extends UIView {
         op.opacity = 0;
         this.panel.setScale(0.9, 0.9, 1);
         tween(op).to(0.14, { opacity: 255 }).start();
-        tween(this.panel).to(0.18, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
+        playClip(this.panel, 'banner-in', () => {
+            this.panel!.setScale(0.9, 0.9, 1);
+            tween(this.panel!).to(0.18, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
+        });
 
         await new Promise<void>((resolve) => setTimeout(resolve, TUNING.feedback.bannerMs));
         await new Promise<void>((resolve) => {

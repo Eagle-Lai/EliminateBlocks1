@@ -3,7 +3,12 @@
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
-const BUILD = path.join(ROOT, 'build/web-mobile');
+const argDir = process.argv[2];
+const candidates = fs.readdirSync(path.join(ROOT, 'build'))
+    .filter((n) => n.startsWith('web-mobile'))
+    .map((n) => path.join(ROOT, 'build', n))
+    .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+const BUILD = argDir ? path.resolve(argDir) : (candidates[0] || path.join(ROOT, 'build/web-mobile'));
 const MAIN_LIMIT = 3.9 * 1024 * 1024;
 const TOTAL_LIMIT = 10.5 * 1024 * 1024;
 

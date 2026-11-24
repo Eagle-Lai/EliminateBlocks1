@@ -90,7 +90,9 @@ function buildOne(dayOfYear: number, seen: Set<string>): Built | null {
     const difficulty = difficultyForWeekday(date.getUTCDay());
     const moveLimit = DIFFICULTY_MOVE_LIMIT[difficulty];
     let goalType = GOAL_CYCLE[(day - 1) % 4];
-    const mutationId = isMutationWeek(month, day) ? 1 + ((dayOfYear - 1) % 8) : undefined;
+    // 方案 B：异变周只用静态异变（迷雾 2 / 倒悬 4 / 单色 5）。
+    // 霜雨/磁力/脆霜是锁定后改盘面的动态效果，求解时不模拟，动态题可能出现「已验证解被异变打乱」。
+    const mutationId = isMutationWeek(month, day) ? [2, 4, 5][(dayOfYear - 1) % 3] : undefined;
     const mutation = mutationId ? mutationById(mutationId) : null;
     const minGroup = mutation?.tiers.standard.minGroupSize;
     const dir = (mutation?.key === 'inverted' ? -1 : 1) as 1 | -1;

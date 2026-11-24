@@ -208,9 +208,10 @@ function calibrate(levels: LevelRow[], nominal: LevelRow[], measured: Map<number
         if (level.goalType === 'stone') level.stoneCount = level.target + 2;
         // 星级：规范值 vs 实测分位取较大者，保证 2★ 约 55–60%、3★ ≤30%
         const q45 = round50(quantile(m.scores, 0.45));
-        const q82 = round50(quantile(m.scores, 0.82));
+        const q80 = round50(quantile(m.scores, 0.8));
         level.star2 = Math.max(round50(level.target * 1.2), Math.min(nom.star2, q45));
-        level.star3 = Math.max(nom.star3, q82, round50(level.star2 * 1.4));
+        // 3★ 取第 4 名分数（5 种子 → 约 20% 达成），留出 ≤30% 的门限余量
+        level.star3 = Math.max(nom.star3, round50(q80 * 1.02), round50(level.star2 * 1.4));
         if (level.target !== nom.target || level.star2 !== nom.star2 || level.star3 !== nom.star3) changed++;
     }
     return changed;
@@ -351,7 +352,7 @@ function writeReport(
         `- 关卡数：${levels.length}（6 章 × 20 关）`,
         `- 名字唯一：${new Set(levels.map((l) => l.name)).size}`,
         `- 异变覆盖：${new Set(levels.map((l) => l.mutationId)).size} 条`,
-        `- 1★ 可达率（机器人 5 种子 × 80 锁）：${(stats.one * 100).toFixed(1)}%`,
+        `- 1★ 可达率（机器人 5 种子 × 120 锁）：${(stats.one * 100).toFixed(1)}%`,
         `- 2★ 达成率：${(stats.two * 100).toFixed(1)}%`,
         `- 3★ 达成率（期望 ≤30%）：${(stats.three * 100).toFixed(1)}%`,
         `- 因可达率不足下调 target 的关数：${adjustments}`,
@@ -391,7 +392,7 @@ function writeReport(
 function main(): void {
     const fast = process.argv.indexOf('--fast') >= 0;
     const seeds = fast ? 1 : 5;
-    const locks = fast ? 30 : 80;
+    const locks = fast ? 30 : 120;
     mkdirSync(join(ROOT, 'docs'), { recursive: true });
     const nominal = buildNominal();
     const levels = buildNominal();

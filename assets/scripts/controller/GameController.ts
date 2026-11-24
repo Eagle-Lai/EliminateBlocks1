@@ -8,12 +8,17 @@ import {
     EventKeyboard,
     Input,
     KeyCode,
+    Node,
     SpriteFrame,
+    Vec3,
+    instantiate,
     input,
     game,
     Game,
 } from 'cc';
 import { TUNING } from '../config/GameTuning';
+import { rotationCells } from '../core/PieceSource';
+import { HighlightView } from '../view/HighlightView';
 import { THEME } from '../config/ThemeConfig';
 import { BoardModel } from '../core/BoardModel';
 import { PieceModel } from '../core/PieceModel';
@@ -43,6 +48,7 @@ import { RunBootstrapper } from './RunBootstrapper';
 import { BoardInput } from './BoardInput';
 import { ResolvePresenter } from './ResolvePresenter';
 import { SugarBurst } from './SugarBurst';
+import { captureUndo, type UndoSnapshot } from './UndoSnapshot';
 import { replayStore } from '../service/ReplayStore';
 import { MutationBadgeView } from '../view/MutationBadgeView';
 import { MutationIntroView } from '../view/MutationIntroView';
@@ -83,6 +89,8 @@ export class GameController extends Component {
     private _lastSample = 0;
     private _locking = false;
     private _lastMoveSoundAt = 0;
+    private _undoSnapshot: UndoSnapshot | null = null;
+    private _undoUsed = 0;
 
     boot(opts: GameBootOptions): void {
         this._layout = opts.layout;
@@ -108,7 +116,8 @@ export class GameController extends Component {
             onRotate: () => this.rotate(),
             onDrop: () => this.hardDrop(),
         });
-        this._view.sugarRail?.bind(() => void this.tryBurst(), () => this.undo());
+        this._view.sugarRail?.bind(() => void this.tryBurst(), () => this.undo(), () => void this.tryHint());
+        this._view.sugarRail?.setHintVisible(!!this._config.hint);
 
         this._input?.destroy();
         this._input = new BoardInput(this._view.boardHost ?? this.node, this._view.board!, {
@@ -145,6 +154,8 @@ export class GameController extends Component {
         this._dropAcc = 0;
         this._elapsed = 0;
         this._lastSample = 0;
+        this._undoSnapshot = null;
+        this._undoUsed = 0;
         this._piece = null;
         this._nextPiece = null;
 
@@ -342,6 +353,9 @@ export class GameController extends Component {
         if (!run || !piece || this._fsm.state !== 'playing' || this._locking) return;
         this._locking = true;
         const dir = run.mutation?.dir ?? 1;
+        if (run.mods.undoCharges > this._undoUsed) {
+            this._undoSnapshot = captureUndo(this._model, this._score, this._level, run);
+        }
         this._fsm.transition('resolving');
         this._piece = null;
         this._view.piece?.setVisible(false);
@@ -592,11 +606,74 @@ export class GameController extends Component {
         this._dropAcc = 0;
     }
 
+    /** 撤销：回到上一次锁定前（棋盘/分数/糖能/目标计数整体回滚） */
+    /** 残局提示：扣金币后把首步落点高亮 3 秒（P2） */
+    private async tryHint(): Promise<void> {
+        const run = this._run;
+        const hint = this._config.hint;
+        if (!run || !hint || !this._fsm.canAcceptInput()) return;
+        const cost = Math.max(0, TUNING.daily.hintsCost - run.mods.hintDiscount);
+        const coins = storage.getNumber(StorageKey.Coins, 0);
+        if (coins < cost) {
+            void UIManager.instance?.toast(`金币不足（还差 ${cost - coins}）`);
+            audio.play('ui_error');
+            return;
+        }
+        storage.set(StorageKey.Coins, coins - cost);
+        audio.play('ui_hint');
+        this._view.hud?.setBest(storage.getNumber(StorageKey.BestScore, 0));
+
+        const cells = rotationCells(hint.shape, hint.rotation);
+        const dir = run.mutation?.dir ?? 1;
+        const y = findDropY(this._model, cells, hint.x, 0, dir);
+        const prefab = assets.getPrefab('prefabs/game/Highlight');
+        const layer = this._view.fxLayer;
+        if (!prefab || !layer) return;
+        for (const cell of cells) {
+            const node = instantiate(prefab);
+            node.setParent(layer);
+            const view = node.getComponent(HighlightView);
+            const pos = this._view.board?.cellToLocal(y + cell.r, hint.x + cell.c);
+            node.setPosition(pos ?? new Vec3(0, 0, 0));
+            view?.flash(TUNING.daily.hintMs);
+            this.scheduleOnce(() => node.destroy(), TUNING.daily.hintMs / 1000 + 0.2);
+        }
+        void UIManager.instance?.toast(`提示已使用（-${cost} 金币）`);
+    }
+
     private undo(): void {
         const run = this._run;
-        if (!run || run.mods.undoCharges <= 0) return;
-        void UIManager.instance?.toast('撤销已记录（快照在 M4 完善）');
+        if (!run || !this._undoSnapshot) return;
+        if (this._fsm.state !== 'playing' || this._locking) return;
+        if (run.mods.undoCharges - this._undoUsed <= 0) return;
+        this._undoUsed++;
+        const snap = this._undoSnapshot;
+        this._undoSnapshot = null;
+        snap.restore(this._model);
+        this._score.score = snap.score;
+        this._level.setLevel(snap.levelLevel);
+        run.sugar.restore(snap.sugarValue, snap.sugarBursts);
+        run.groupCount = snap.groupCount;
+        run.lockCount = snap.lockCount;
+        run.rowsCleared = snap.rowsCleared;
+        run.deferredLocks = snap.deferredLocks;
+        run.goal?.reset();
+        run.goal?.syncScore(this._score.score);
+
+        this._fsm.force('playing');
+        this._piece = null;
+        this._view.piece?.setVisible(false);
+        this._dropAcc = 0;
+        this._view.board?.clearAll();
+        void this._view.board?.rebuild(this._model, 0, this._fogOpts());
+        this._view.hud?.setScore(this._score.score);
+        this._view.hud?.setLevel(this._level.level);
+        this._view.hud?.setProgress(this._level.progress(this._score.score));
+        this._view.sugarRail?.setValue(run.sugar.value);
+        if (run.config.goal) this._view.hud?.setGoal(true, this._goalText(this._config), run.goal?.progressText() ?? '');
+        this._view.sugarRail?.setUndoEnabled(run.mods.undoCharges - this._undoUsed > 0, run.mods.undoCharges - this._undoUsed);
         audio.play('undo');
+        this.spawnNext();
     }
 
     requestPause(): void {

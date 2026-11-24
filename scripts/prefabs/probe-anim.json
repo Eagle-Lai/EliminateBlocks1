@@ -1,0 +1,1 @@
+{"code":"const uuid = 'a1b2c3d4-0000-4000-8000-00000000d101';\nlet out = null, err = null;\ntry {\n  out = await new Promise((r) => cc.assetManager.loadAny({ uuid }, (e, a) => r(e ? 'ERR ' + e : a ? { type: a.constructor.name, dur: a.duration, name: a.name } : 'null')));\n} catch (e) { err = String(e); }\nreturn { out, err };\n"}

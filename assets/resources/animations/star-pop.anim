@@ -1,0 +1,77 @@
+{
+  "__type__": "cc.AnimationClip",
+  "_name": "star-pop",
+  "_objFlags": 0,
+  "_native": "",
+  "sample": 60,
+  "speed": 1,
+  "wrapMode": 1,
+  "events": [],
+  "_duration": 0.46,
+  "_keys": [],
+  "_stepness": 0,
+  "curveDatas": {
+    "paths": {
+      "Star1": {
+        "props": {
+          "scale": [
+            [
+              0,
+              0.2
+            ],
+            [
+              0.18,
+              1.15,
+              "backOut"
+            ],
+            [
+              0.28,
+              1
+            ]
+          ]
+        }
+      },
+      "Star2": {
+        "props": {
+          "scale": [
+            [
+              0.09,
+              0.2
+            ],
+            [
+              0.27,
+              1.15,
+              "backOut"
+            ],
+            [
+              0.37,
+              1
+            ]
+          ]
+        }
+      },
+      "Star3": {
+        "props": {
+          "scale": [
+            [
+              0.18,
+              0.2
+            ],
+            [
+              0.36,
+              1.15,
+              "backOut"
+            ],
+            [
+              0.46,
+              1
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "_curves": [],
+  "_commonTargets": [],
+  "_hash": 0
+}

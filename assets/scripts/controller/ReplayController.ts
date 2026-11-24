@@ -1,21 +1,32 @@
-/** 回放控制器：按快照时间轴驱动 ReplayView（不做逐帧重演，避免与手感耦合）。 */
+/** 回放控制器：逐锁重演（同种子 + 同动作 → 与对局一致的分数与棋盘）。 */
 import { BoardModel } from '../core/BoardModel';
 import type { ReplayData } from '../core/InputRecorder';
 import type { ReplayView } from '../view/ReplayView';
 import { ReplayPlayer } from '../core/ReplayPlayer';
-import { assets } from '../service/AssetService';
-import { ART } from '../config/AssetKeys';
+import { rotationCells } from '../core/PieceSource';
+import { simulateLock } from '../core/Simulator';
+import { TUNING } from '../config/GameTuning';
+import { Logger } from '../utils/Logger';
+import type { SpriteFrame } from 'cc';
 
 export class ReplayController {
+    private _board: BoardModel;
     private _index = 0;
+    private _score = 0;
     private _playing = false;
-    private _speed = 1;
     private _timer = 0;
+    private _speed = 1;
     private _data: ReplayData;
-    private _onUpdate: (() => void) | null = null;
 
-    constructor(private readonly view: ReplayView, data: ReplayData) {
+    constructor(
+        private readonly view: ReplayView,
+        data: ReplayData,
+        private readonly frames: (SpriteFrame | null)[],
+    ) {
         this._data = data;
+        this._board = data.initialBoard.length > 0
+            ? BoardModel.fromPattern(data.initialBoard)
+            : new BoardModel(TUNING.board.cols, TUNING.board.rows);
     }
 
     async start(): Promise<void> {
@@ -28,28 +39,34 @@ export class ReplayController {
         });
         this.view.setSpeed(this._speed);
         this.view.setPlaying(false);
+        this.view.board?.init(this.frames);
+        this.view.board?.layout(TUNING.board.cols, TUNING.board.rows, 54);
         await this._render(0);
-        const sf = await assets.loadSpriteFrame(ART.bg.home);
-        void sf;
     }
 
-    get data(): ReplayData {
-        return this._data;
+    private _locks(): number {
+        return this._data.actions.filter((a) => a.t === 'lock').length;
     }
 
-    private async _render(index: number): Promise<void> {
-        const snaps = this._data.snapshots;
-        if (snaps.length === 0) {
-            this.view.setScore(this._data.score);
-            this.view.setTime('0:00');
-            return;
+    private async _render(actionIndex: number): Promise<void> {
+        this._index = Math.max(0, Math.min(this._data.actions.length, actionIndex));
+        // 从头重演到目标索引（动作数有限，重放成本可忽略；seek 因此天然正确）
+        this._board = this._data.initialBoard.length > 0
+            ? BoardModel.fromPattern(this._data.initialBoard)
+            : new BoardModel(TUNING.board.cols, TUNING.board.rows);
+        this._score = 0;
+        let locks = 0;
+        for (let i = 0; i < this._index; i++) {
+            const action = this._data.actions[i];
+            if (action.t !== 'lock') continue;
+            locks++;
+            const cells = rotationCells(action.shape, action.rotation);
+            const result = simulateLock(this._board, cells, action.x, action.y, action.color, locks);
+            this._score += result.gain;
         }
-        this._index = Math.max(0, Math.min(snaps.length - 1, index));
-        const snap = snaps[this._index];
-        const board = BoardModel.fromPattern(snap.board.split('\n'));
-        await this.view.board?.rebuild(board, 0);
-        this.view.setScore(snap.score);
-        this.view.setTime(`${snap.lock} 锁 · ${this._index + 1}/${snaps.length}`);
+        await this.view.board?.rebuild(this._board, 0);
+        this.view.setScore(this._score);
+        this.view.setTime(`${locks} 锁 · ${this._index}/${this._data.actions.length} 步`);
     }
 
     private toggle(): void {
@@ -63,20 +80,20 @@ export class ReplayController {
     }
 
     private seek(ratio: number): void {
-        const snaps = this._data.snapshots;
-        if (snaps.length === 0) return;
-        void this._render(Math.round(ratio * (snaps.length - 1)));
+        void this._render(Math.round(ratio * this._data.actions.length));
     }
 
     update(dt: number): void {
         if (!this._playing) return;
         this._timer += dt * this._speed;
-        if (this._timer < 0.6) return;
+        if (this._timer < 0.55) return;
         this._timer = 0;
-        const snaps = this._data.snapshots;
-        if (this._index + 1 >= snaps.length) {
+        if (this._index >= this._data.actions.length) {
             this._playing = false;
             this.view.setPlaying(false);
+            const check = ReplayPlayer.simulate(this._data).score === this._score;
+            Logger.info('Replay', `重演完成：${this._score} 分（确定性校验 ${check ? '通过' : '失败'}）`);
+            this.view.setTime(`完成 · ${check ? '确定性校验通过' : '校验失败'}`);
             return;
         }
         void this._render(this._index + 1);
@@ -88,7 +105,6 @@ export class ReplayController {
 
     /** 确定性校验（验收用） */
     static verify(data: ReplayData): boolean {
-        const sim = ReplayPlayer.simulate(data);
-        return sim.mismatchAt === null;
+        return ReplayPlayer.verify(data);
     }
 }

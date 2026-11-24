@@ -1,5 +1,6 @@
 /** 星级行：3 个 Sprite，逐颗弹入。 */
 import { _decorator, Node, Sprite, Vec3, tween } from 'cc';
+import { playClip } from '../utils/Anim';
 import { UIView } from '../ui/UIView';
 import { assets } from '../service/AssetService';
 import { ART } from '../config/AssetKeys';
@@ -42,16 +43,18 @@ export class StarRowView extends UIView {
     setStars(count: number): void {
         this._count = Math.max(0, Math.min(3, count));
         this.redraw();
-        const list = this._stars().filter((s): s is Sprite => !!s);
-        list.forEach((sprite, i) => {
-            if (i >= this._count) return;
-            const node: Node = sprite.node;
-            node.setScale(0.2, 0.2, 1);
-            tween(node)
-                .delay(i * (TUNING.feedback.starPopMs / 1000))
-                .to(0.18, { scale: new Vec3(1.15, 1.15, 1) }, { easing: 'backOut' })
-                .to(0.1, { scale: new Vec3(1, 1, 1) })
-                .start();
+        playClip(this.node, 'star-pop', () => {
+            const list = this._stars().filter((s): s is Sprite => !!s);
+            list.forEach((sprite, i) => {
+                if (i >= this._count) return;
+                const node: Node = sprite.node;
+                node.setScale(0.2, 0.2, 1);
+                tween(node)
+                    .delay(i * (TUNING.feedback.starPopMs / 1000))
+                    .to(0.18, { scale: new Vec3(1.15, 1.15, 1) }, { easing: 'backOut' })
+                    .to(0.1, { scale: new Vec3(1, 1, 1) })
+                    .start();
+            });
         });
     }
 

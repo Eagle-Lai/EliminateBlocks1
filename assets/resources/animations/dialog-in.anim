@@ -1,0 +1,31 @@
+{
+  "__type__": "cc.AnimationClip",
+  "_name": "dialog-in",
+  "_objFlags": 0,
+  "_native": "",
+  "sample": 60,
+  "speed": 1,
+  "wrapMode": 1,
+  "events": [],
+  "_duration": 0.22,
+  "_keys": [],
+  "_stepness": 0,
+  "curveDatas": {
+    "props": {
+      "scale": [
+        [
+          0,
+          0.88,
+          "backOut"
+        ],
+        [
+          0.22,
+          1
+        ]
+      ]
+    }
+  },
+  "_curves": [],
+  "_commonTargets": [],
+  "_hash": 0
+}

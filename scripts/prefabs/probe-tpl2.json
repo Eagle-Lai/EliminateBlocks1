@@ -1,0 +1,1 @@
+{"code":"const fs = require('fs');\nconst list = async (url) => {\n  const assets = await Editor.Message.request('asset-db', 'query-assets', url + '/**/*');\n  return (assets || []).map(a => ({ url: a.url, file: a.file }));\n};\nreturn { atlas: await list('db://internal/default_file_content/auto-atlas'), anim: await list('db://internal/default_file_content/animation-clip') };\n"}

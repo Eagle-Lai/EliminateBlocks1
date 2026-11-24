@@ -21,6 +21,7 @@ import { ReplayPlayer } from '../assets/scripts/core/ReplayPlayer';
 import { trimReplay, replayBytes, type ReplayData } from '../assets/scripts/core/InputRecorder';
 import { GreedyBot, placementsFor } from '../assets/scripts/core/Solver';
 import { ShadowTrack } from '../assets/scripts/core/ShadowTrack';
+import { captureUndo } from '../assets/scripts/controller/UndoSnapshot';
 import { difficultyForWeekday, DIFFICULTY_MOVE_LIMIT, monthDayFromDayOfYear, isMutationWeek, dateKey } from '../assets/scripts/core/DailyPuzzle';
 import { Rng } from '../assets/scripts/utils/Rng';
 import { CancelToken } from '../assets/scripts/utils/CancelToken';
@@ -549,6 +550,36 @@ async function main(): Promise<void> {
         assert.equal(isMutationWeek(1, 1), true);
         assert.equal(isMutationWeek(1, 7), true);
         assert.equal(isMutationWeek(1, 8), false);
+    });
+    await test('SugarEnergy.restore 恢复槽值与次数', () => {
+        const s = new SugarEnergy();
+        s.add(80, 2);
+        s.consume();
+        s.restore(45, 1);
+        assert.equal(s.value, 45);
+        assert.equal(s.bursts, 1);
+        assert.equal(s.nextLevel, 2);
+    });
+    await test('撤销快照可完整回滚棋盘与计数', () => {
+        const bd = blank();
+        bd.set(15, 0, b(0, 1));
+        bd.set(15, 1, b(0, 2));
+        const before = bd.dump();
+        const score = new ScoreService();
+        const level = new LevelService();
+        const snap = captureUndo(bd, score, level, {
+            sugarValue: 30, sugarBursts: 0, groupCount: 2, lockCount: 2, rowsCleared: 1, deferredLocks: 0,
+        });
+        // 模拟一整锁带来的变化
+        bd.set(15, 1, null);
+        bd.set(14, 3, b(3, 9));
+        score.add(500);
+        level.tryLevelUp(1500);
+        snap.restore(bd);
+        assert.equal(bd.dump(), before);
+        assert.equal(snap.score, 0);
+        assert.equal(snap.groupCount, 2);
+        assert.equal(snap.lockCount, 2);
     });
     await test('日期键补零', () => {
         assert.equal(dateKey(new Date(2027, 0, 5)), '2027-01-05');

@@ -11,6 +11,11 @@ export class LevelService {
         return this._level;
     }
 
+    /** 撤销快照恢复：直接回到指定等级 */
+    setLevel(value: number): void {
+        this._level = Math.max(1, value);
+    }
+
     reset(): void {
         this._level = 1;
     }

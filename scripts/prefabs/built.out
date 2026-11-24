@@ -1,0 +1,238 @@
+
+> mcp:call
+> node scripts/mcp-call.cjs scene_script @scripts/prefabs/build.json
+
+{
+  "built": [
+    {
+      "key": "boot",
+      "rel": "ui/Boot",
+      "uuid": "cdoxfq61tKfJ/DLjqlmLgw",
+      "name": "Boot"
+    },
+    {
+      "key": "home",
+      "rel": "ui/Home",
+      "uuid": "2d778Ep7hBdpnfXLUXaUGN",
+      "name": "Home"
+    },
+    {
+      "key": "chapterMap",
+      "rel": "ui/ChapterMap",
+      "uuid": "d8ujByb5FMtqmVcVpd85jc",
+      "name": "ChapterMap"
+    },
+    {
+      "key": "chapterTab",
+      "rel": "ui/ChapterTab",
+      "uuid": "83DgwX+05Lnr9xAuMm0xUs",
+      "name": "ChapterTab"
+    },
+    {
+      "key": "levelNode",
+      "rel": "ui/LevelNode",
+      "uuid": "6f2HG+OVNJwa/faHpgZME3",
+      "name": "LevelNode"
+    },
+    {
+      "key": "dailyPanel",
+      "rel": "ui/DailyPanel",
+      "uuid": "5e2PtsRlJO6r3k7Ywb9r/w",
+      "name": "DailyPanel"
+    },
+    {
+      "key": "dayCell",
+      "rel": "ui/DayCell",
+      "uuid": "e8GhN1Rg1POZhCijFCZfxf",
+      "name": "DayCell"
+    },
+    {
+      "key": "settings",
+      "rel": "ui/Settings",
+      "uuid": "c4FEm4WMZJw4q1LplQmnjc",
+      "name": "Settings"
+    },
+    {
+      "key": "replay",
+      "rel": "ui/Replay",
+      "uuid": "eaoaY75TZCgI006FwaIWqZ",
+      "name": "Replay"
+    },
+    {
+      "key": "background",
+      "rel": "ui/Background",
+      "uuid": "59FXWsmThES646hCJ7rhx9",
+      "name": "Background"
+    },
+    {
+      "key": "gameScreen",
+      "rel": "game/GameScreen",
+      "uuid": "995KHOd9JH25CxL2MkE1rw",
+      "name": "GameScreen"
+    },
+    {
+      "key": "hud",
+      "rel": "game/HUD",
+      "uuid": "77tIb2Yf1GUrVQBCbVdBXR",
+      "name": "HUD"
+    },
+    {
+      "key": "pad",
+      "rel": "game/Pad",
+      "uuid": "e0lUur2/1FXoePaJ+oD40Q",
+      "name": "Pad"
+    },
+    {
+      "key": "sugarRail",
+      "rel": "game/SugarRail",
+      "uuid": "240uEKJDBFP604+olLro7d",
+      "name": "SugarRail"
+    },
+    {
+      "key": "board",
+      "rel": "game/Board",
+      "uuid": "49k/z6k+FOerlBqyAemD/G",
+      "name": "Board"
+    },
+    {
+      "key": "gridCell",
+      "rel": "game/GridCell",
+      "uuid": "1b8xKbG6BEDpXaEwt6I+Bv",
+      "name": "GridCell"
+    },
+    {
+      "key": "block",
+      "rel": "game/Block",
+      "uuid": "0f81i+d3dHc7Ct8gtJ+dVa",
+      "name": "Block"
+    },
+    {
+      "key": "pieceCell",
+      "rel": "game/PieceCell",
+      "uuid": "62LRgqKLJAD5kXYtLID9cv",
+      "name": "PieceCell"
+    },
+    {
+      "key": "ghostCell",
+      "rel": "game/GhostCell",
+      "uuid": "3bcDBycZdNK7Ll35aBGjeR",
+      "name": "GhostCell"
+    },
+    {
+      "key": "fogCell",
+      "rel": "game/FogCell",
+      "uuid": "99UO7zqhFIRZcGEsKmWca3",
+      "name": "FogCell"
+    },
+    {
+      "key": "shadowBar",
+      "rel": "game/ShadowBar",
+      "uuid": "13w9tCLahNsYG4xyTnVP/o",
+      "name": "ShadowBar"
+    },
+    {
+      "key": "mutationBadge",
+      "rel": "game/MutationBadge",
+      "uuid": "5eSa7QvvZNBbh8TW2Dhp1W",
+      "name": "MutationBadge"
+    },
+    {
+      "key": "mutationIntro",
+      "rel": "game/MutationIntro",
+      "uuid": "a5cpfSSXFO4LNJB+dzBtwv",
+      "name": "MutationIntro"
+    },
+    {
+      "key": "highlight",
+      "rel": "game/Highlight",
+      "uuid": "98C3T5801KEIyFsKUTGEGl",
+      "name": "Highlight"
+    },
+    {
+      "key": "dialog",
+      "rel": "ui/Dialog",
+      "uuid": "e0hA9vZsFNYZc26Y8AZVoq",
+      "name": "Dialog"
+    },
+    {
+      "key": "toast",
+      "rel": "ui/Toast",
+      "uuid": "0cbcLRIYFPAY2cvAvC1Ty7",
+      "name": "Toast"
+    },
+    {
+      "key": "banner",
+      "rel": "ui/Banner",
+      "uuid": "7dYvjSa3dGIoSEpaqJnPsT",
+      "name": "Banner"
+    },
+    {
+      "key": "floatText",
+      "rel": "ui/FloatText",
+      "uuid": "eaAF9AcI9GBrbMlAhdff9j",
+      "name": "FloatText"
+    },
+    {
+      "key": "talentPicker",
+      "rel": "ui/TalentPicker",
+      "uuid": "876LKTfxtFzYaQ6Zi3fl/Z",
+      "name": "TalentPicker"
+    },
+    {
+      "key": "talentCard",
+      "rel": "ui/TalentCard",
+      "uuid": "f5HdpkY55LYZleW8zocgyl",
+      "name": "TalentCard"
+    },
+    {
+      "key": "colorPicker",
+      "rel": "ui/ColorPicker",
+      "uuid": "fenSAN4nlCQ67nNeciajib",
+      "name": "ColorPicker"
+    },
+    {
+      "key": "starRow",
+      "rel": "ui/StarRow",
+      "uuid": "f9bxW03XVGS5rO8ougBOKc",
+      "name": "StarRow"
+    },
+    {
+      "key": "button",
+      "rel": "ui/Button",
+      "uuid": "8fmPiKyFBJuqtOuyOwXDbo",
+      "name": "Button"
+    },
+    {
+      "key": "progressBar",
+      "rel": "ui/ProgressBar",
+      "uuid": "c20F30AmVA37EQHnFAxvrh",
+      "name": "ProgressBar"
+    },
+    {
+      "key": "burstFx",
+      "rel": "fx/BurstFx",
+      "uuid": "d8mbD5ySZDZ7sjjTDgSXiR",
+      "name": "BurstFx"
+    },
+    {
+      "key": "shockwaveFx",
+      "rel": "fx/ShockwaveFx",
+      "uuid": "469FYt2K9EY7UhMe5xzIFS",
+      "name": "ShockwaveFx"
+    },
+    {
+      "key": "frostFx",
+      "rel": "fx/FrostFx",
+      "uuid": "11Ch8Gx61DqIFJn4ZL3nc3",
+      "name": "FrostFx"
+    },
+    {
+      "key": "prismFx",
+      "rel": "fx/PrismFx",
+      "uuid": "f83Vy6JhBGCapaegj5m8hA",
+      "name": "PrismFx"
+    }
+  ],
+  "tempUuid": "f77YeS0rBJeqK4nuIzcbP0",
+  "count": 38
+}

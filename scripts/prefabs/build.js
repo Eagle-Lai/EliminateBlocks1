@@ -5,7 +5,11 @@ const W = 750;
 const H = 1334;
 const UI_LAYER = 1 << 25;
 const F = args.frames || {};
+const FONT_UUID = args.fontUuid || null;
 const loaded = new Map();
+let FONT = null;
+const ANIM_UUIDS = args.anims || {};
+const CLIPS = {};
 
 async function sf(path) {
   if (!path) return null;
@@ -60,6 +64,10 @@ function label(n, text, opts) {
   l.string = text;
   l.fontSize = o.size || 24;
   l.lineHeight = o.lineHeight || Math.round((o.size || 24) * 1.25);
+  if (FONT) {
+    l.useSystemFont = false;
+    l.font = FONT;
+  }
   l.color = new cc.Color(
     o.color ? o.color[0] : 59,
     o.color ? o.color[1] : 42,
@@ -244,6 +252,7 @@ async function buildStarRow() {
     const n = node(names[i], root, 72, 72, -100 + i * 100, 0);
     sprites.push(await sprite(n, 'art/icon/star_empty'));
   }
+  addAnim(root, ['star-pop']);
   attach(root, 'StarRowView', { star1: sprites[0], star2: sprites[1], star3: sprites[2] });
   return root;
 }
@@ -257,6 +266,7 @@ async function buildToast() {
   icon.active = false;
   const t = node('Text', root, 340, 64);
   const l = label(t, '提示', { size: 24, color: [255, 252, 245] });
+  addAnim(bg, ['toast-in']);
   attach(root, 'ToastView', { bg, icon: icon.getComponent(cc.Sprite), textLabel: l });
   return root;
 }
@@ -267,6 +277,7 @@ async function buildBanner() {
   const s = await sprite(p, 'art/ui/panel_strip');
   const t = node('Text', p, 300, 52);
   const l = label(t, '连锁 x2', { size: 26, bold: true, color: [255, 209, 102] });
+  addAnim(p, ['banner-in']);
   attach(root, 'BannerView', { panel: p, label: l, bg: s });
   return root;
 }
@@ -298,6 +309,7 @@ async function buildHighlight() {
 async function buildBurstFx() {
   const root = node('BurstFx', null, 128, 128);
   await sprite(root, 'art/fx/spark');
+  addAnim(root, ['burst']);
   attach(root, 'BurstFx', { spark: root.getComponent(cc.Sprite) });
   return root;
 }
@@ -471,12 +483,15 @@ async function buildSugarRail() {
   }
   const undo = await button(root, 'Btn_Undo', '撤', 'icon', 52, 52, 0, 370, 20);
   undo.node.active = false;
+  const hint = await button(root, 'Btn_Hint', '灯', 'icon', 52, 52, 0, 308, 20);
+  hint.node.active = false;
   attach(root, 'SugarRailView', {
     track: track.getComponent(cc.Sprite),
     fill: fillS,
     percentLabel: percentL,
     burstBtn: burst.btn,
     undoBtn: undo.btn,
+    hintBtn: hint.btn,
     talentDots: dots,
   });
   return root;
@@ -532,6 +547,7 @@ async function buildMutationIntro() {
   const rule = node('Rule', card, 460, 70, 0, -50);
   const ruleL = label(rule, '每 6 次锁定从底部插入一行霜石', { size: 20, color: [139, 115, 85], wrap: true });
   const skip = await button(card, 'Btn_Skip', '跳过', 'secondary', 240, 70, 0, -150, 24);
+  addAnim(card, ['card-in']);
   attach(root, 'MutationIntroView', {
     icon: icon.getComponent(cc.Sprite),
     nameLabel: nameL,
@@ -872,6 +888,7 @@ async function buildDialog() {
   starRow.setPosition(0, -50, 0);
   const primary = await button(card, 'Btn_Primary', '再来一局', 'primary', 500, 92, 0, -140, 30);
   const secondary = await button(card, 'Btn_Secondary', '返回首页', 'secondary', 500, 70, 0, -226, 24);
+  addAnim(card, ['dialog-in']);
   attach(root, 'DialogView', {
     mask,
     card,
@@ -957,11 +974,25 @@ async function buildColorPicker() {
 }
 
 // ───────────────────────── 主流程 ─────────────────────────
-const TEMP = '__PrefabTemp__';
-const old = cc.director.getScene().getChildByName(TEMP);
-if (old) old.destroy();
+if (FONT_UUID) {
+  FONT = await new Promise((resolve) => {
+    cc.assetManager.loadAny({ uuid: FONT_UUID }, (err, a) => resolve(err ? null : a));
+  });
+}
+for (const key of Object.keys(ANIM_UUIDS)) {
+  CLIPS[key] = await new Promise((resolve) => {
+    cc.assetManager.loadAny({ uuid: ANIM_UUIDS[key] }, (err, a) => resolve(err ? null : a));
+  });
+}
 
-const temp = node(TEMP, cc.director.getScene(), 10, 10);
+function addAnim(node, keys) {
+  const clips = keys.map((k) => CLIPS[k]).filter(Boolean);
+  if (clips.length === 0) return null;
+  const anim = node.addComponent(cc.Animation);
+  anim.clips = clips;
+  return anim;
+}
+
 const specs = [
   ['boot', 'ui/Boot', buildBoot],
   ['home', 'ui/Home', buildHome],
@@ -1003,11 +1034,18 @@ const specs = [
   ['prismFx', 'fx/PrismFx', buildPrismFx],
 ];
 
-const built = [];
-for (const [key, rel, fn] of specs) {
+// 分批执行：每批 < 5s，避免编辑器 "Scene Not Response" 看门狗；
+// 节点独立构建后用 EditorExtends.serialize 序列化，主进程直接写 .prefab 文件，
+// 全程不调用 scene:create-prefab（它可能弹原生保存对话框）。
+const batch = args.batch || { start: 0, count: specs.length };
+const from = Math.max(0, batch.start | 0);
+const to = Math.min(specs.length, from + Math.max(1, batch.count | 0));
+const items = [];
+for (let i = from; i < to; i++) {
+  const [key, rel, fn] = specs[i];
   const root = await fn();
   root.name = rel.split('/').pop();
-  root.setParent(temp);
-  built.push({ key, rel, uuid: root.uuid, name: root.name });
+  items.push({ key, rel, name: root.name, json: EditorExtends.serialize(root) });
+  root.destroy();
 }
-return { built, tempUuid: temp.uuid, count: built.length };
+return { items, from, to, total: specs.length };

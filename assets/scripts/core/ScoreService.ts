@@ -25,6 +25,11 @@ export class ScoreService {
         return this._score;
     }
 
+    /** 撤销快照恢复：直接回写总分 */
+    set score(value: number) {
+        this._score = value;
+    }
+
     reset(): void {
         this._score = 0;
     }

@@ -13,6 +13,8 @@ import { Logger } from './utils/Logger';
 function attachEntry(): void {
     const scene = director.getScene();
     if (!scene) return;
+    // 只在主场景检查：预制体编辑场景（如 DailyPanel-scene）没有 Canvas，刷警告无意义
+    if (scene.name !== 'Main') return;
 
     const canvas = scene.getChildByName('Canvas');
     if (!canvas) {

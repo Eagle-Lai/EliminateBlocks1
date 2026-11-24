@@ -1,0 +1,1 @@
+{"code":"const cid = '8e99cfcJaxEzpWP1egCKRaR';\nconst k = cc.js.getClassById(cid);\nreturn { name: k ? k.name : null };\n"}

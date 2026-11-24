@@ -25,18 +25,16 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 8
+        "__id__": 5
       },
       {
-        "__id__": 10
+        "__id__": 6
       },
       {
-        "__id__": 12
+        "__id__": 7
       }
     ],
-    "_prefab": {
-      "__id__": 14
-    },
+    "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
@@ -64,7 +62,7 @@
       "y": 0,
       "z": 0
     },
-    "_id": ""
+    "_id": "1bRwPpZbdAlZwsFVLmqcOA"
   },
   {
     "__type__": "cc.Node",
@@ -81,12 +79,10 @@
         "__id__": 3
       },
       {
-        "__id__": 5
+        "__id__": 4
       }
     ],
-    "_prefab": {
-      "__id__": 7
-    },
+    "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
@@ -114,7 +110,7 @@
       "y": 0,
       "z": 0
     },
-    "_id": ""
+    "_id": "6cgh6WZL9Jo7fSR92+PAeZ"
   },
   {
     "__type__": "cc.UITransform",
@@ -125,9 +121,7 @@
       "__id__": 2
     },
     "_enabled": true,
-    "__prefab": {
-      "__id__": 4
-    },
+    "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 60,
@@ -138,11 +132,7 @@
       "x": 0.5,
       "y": 0.5
     },
-    "_id": ""
-  },
-  {
-    "__type__": "cc.CompPrefabInfo",
-    "fileId": "b6irBZNXJH44x6ApA9HnNk"
+    "_id": "bdWEfDVG1OE6UZydEdO8UJ"
   },
   {
     "__type__": "cc.Label",
@@ -153,9 +143,7 @@
       "__id__": 2
     },
     "_enabled": true,
-    "__prefab": {
-      "__id__": 6
-    },
+    "__prefab": null,
     "_customMaterial": null,
     "_srcBlendFactor": 2,
     "_dstBlendFactor": 4,
@@ -175,8 +163,11 @@
     "_lineHeight": 38,
     "_overflow": 0,
     "_enableWrapText": true,
-    "_font": null,
-    "_isSystemFontUsed": true,
+    "_font": {
+      "__uuid__": "ececa094-2038-405c-ba60-fed397822d6f",
+      "__expectedType__": "cc.TTFFont"
+    },
+    "_isSystemFontUsed": false,
     "_spacingX": 0,
     "_isItalic": false,
     "_isBold": true,
@@ -206,24 +197,7 @@
       "y": 2
     },
     "_shadowBlur": 2,
-    "_id": ""
-  },
-  {
-    "__type__": "cc.CompPrefabInfo",
-    "fileId": "79CuDoEJBH9rsswI+GgVi+"
-  },
-  {
-    "__type__": "cc.PrefabInfo",
-    "root": {
-      "__id__": 1
-    },
-    "asset": {
-      "__id__": 0
-    },
-    "fileId": "2dT4HaUT5CXbtin5atk7U8",
-    "instance": null,
-    "targetOverrides": null,
-    "nestedPrefabInstanceRoots": null
+    "_id": "d0uNOmznhLu4D1XiLRzUMA"
   },
   {
     "__type__": "cc.UITransform",
@@ -234,9 +208,7 @@
       "__id__": 1
     },
     "_enabled": true,
-    "__prefab": {
-      "__id__": 9
-    },
+    "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 240,
@@ -247,11 +219,7 @@
       "x": 0.5,
       "y": 0.5
     },
-    "_id": ""
-  },
-  {
-    "__type__": "cc.CompPrefabInfo",
-    "fileId": "3fNNxk6XdAcYUs7gn4vWhT"
+    "_id": "85ox6VCCpJEaMckOkyH3in"
   },
   {
     "__type__": "cc.Sprite",
@@ -262,9 +230,7 @@
       "__id__": 1
     },
     "_enabled": true,
-    "__prefab": {
-      "__id__": 11
-    },
+    "__prefab": null,
     "_customMaterial": null,
     "_srcBlendFactor": 2,
     "_dstBlendFactor": 4,
@@ -292,11 +258,7 @@
     "_isTrimmedMode": true,
     "_useGrayscale": false,
     "_atlas": null,
-    "_id": ""
-  },
-  {
-    "__type__": "cc.CompPrefabInfo",
-    "fileId": "3eaDRgNXhDzYGrwemiTe+E"
+    "_id": "c4+ewpk/VNr5iFX7ZPP07g"
   },
   {
     "__type__": "8e99cfcJaxEzpWP1egCKRaR",
@@ -307,33 +269,16 @@
       "__id__": 1
     },
     "_enabled": true,
-    "__prefab": {
-      "__id__": 13
-    },
+    "__prefab": null,
     "bg": {
-      "__id__": 10
+      "__id__": 6
     },
     "label": {
-      "__id__": 5
+      "__id__": 4
     },
     "iconSprite": null,
     "iconNode": null,
     "skin": "primary",
-    "_id": ""
-  },
-  {
-    "__type__": "cc.CompPrefabInfo",
-    "fileId": "dastO5QJpNw7s8P0UKnUD9"
-  },
-  {
-    "__type__": "cc.PrefabInfo",
-    "root": {
-      "__id__": 1
-    },
-    "asset": {
-      "__id__": 0
-    },
-    "fileId": "abByy4nQtMPpbgnlXSt2+3",
-    "targetOverrides": null
+    "_id": "adKeCNMLxBtKYEr18QTKWn"
   }
 ]

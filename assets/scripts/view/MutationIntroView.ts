@@ -7,6 +7,7 @@ import { assets } from '../service/AssetService';
 import { ART } from '../config/AssetKeys';
 import { setLabel } from './ViewUtils';
 import { TUNING } from '../config/GameTuning';
+import { playClip } from '../utils/Anim';
 
 const { ccclass, property } = _decorator;
 
@@ -49,9 +50,11 @@ export class MutationIntroView extends UIView {
         if (card) {
             const op = card.getComponent(UIOpacity) || card.addComponent(UIOpacity);
             op.opacity = 0;
-            card.setScale(0.9, 0.9, 1);
             tween(op).to(0.16, { opacity: 255 }).start();
-            tween(card).to(0.2, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
+            playClip(card, 'card-in', () => {
+                card.setScale(0.9, 0.9, 1);
+                tween(card).to(0.2, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
+            });
         }
 
         return new Promise<void>((resolve) => {
