@@ -15,6 +15,15 @@ export class PieceFactory {
         private readonly colorCount: number,
     ) {}
 
+    /** 无限牌源（PieceSource 实现） */
+    get remaining(): number {
+        return Number.POSITIVE_INFINITY;
+    }
+
+    next(): PieceModel {
+        return this.create();
+    }
+
     reset(): void {
         this._seq = 0;
     }

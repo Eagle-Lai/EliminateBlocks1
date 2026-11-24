@@ -1,0 +1,15 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "eba40125-4ab0-499b-9a2d-811c1f7b7a57",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleName": "audio-bgm",
+    "priority": 1,
+    "compressionType": {},
+    "isRemoteBundle": false
+  }
+}

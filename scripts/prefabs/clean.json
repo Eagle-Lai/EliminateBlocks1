@@ -1,0 +1,1 @@
+{"code":"const scene = cc.director.getScene();\nconst temp = scene.getChildByName('__PrefabTemp__');\nif (temp) { temp.removeFromParent(); temp.destroy(); }\nreturn { ok: true, remaining: scene.children.map(c => c.name) };\n"}

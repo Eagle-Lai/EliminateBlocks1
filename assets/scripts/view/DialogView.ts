@@ -1,22 +1,11 @@
-/**
- * 通用弹窗：遮罩 + 卡片 + 主/次按钮。
- * 用于结算、暂停、重开确认三种场景，避免重复实现。
- */
-import {
-    _decorator,
-    BlockInputEvents,
-    Component,
-    Graphics,
-    Node,
-    Vec3,
-    tween,
-} from 'cc';
-import { THEME } from '../config/ThemeConfig';
-import { LayoutAdapter } from '../ui/LayoutAdapter';
-import { createLabel, createNode, createPanel, getOpacity, setSize } from '../ui/UIFactory';
+/** 通用弹窗：遮罩 + 卡片 + 标签/标题/分数/星级/副标题 + 主次按钮（Prefab 静态，不动态建按钮）。 */
+import { _decorator, Label, Node, UIOpacity, Vec3, tween } from 'cc';
+import { UIView } from '../ui/UIView';
 import { UIButton } from '../ui/UIButton';
+import { StarRowView } from './StarRowView';
+import { setActive, setLabel } from './ViewUtils';
 
-const { ccclass } = _decorator;
+const { ccclass, property } = _decorator;
 
 export interface DialogButton {
     text: string;
@@ -29,139 +18,84 @@ export interface DialogOptions {
     title: string;
     score?: string;
     subtitle?: string;
+    stars?: number;
     buttons: DialogButton[];
 }
 
 @ccclass('DialogView')
-export class DialogView extends Component {
-    private _width = 750;
-    private _height = 1334;
-    private _mask: Node | null = null;
-    private _card: Node | null = null;
-    private _visible = false;
+export class DialogView extends UIView {
+    @property(Node) mask: Node | null = null;
+    @property(Node) card: Node | null = null;
+    @property(Label) tagLabel: Label | null = null;
+    @property(Label) titleLabel: Label | null = null;
+    @property(Label) scoreLabel: Label | null = null;
+    @property(Label) subtitleLabel: Label | null = null;
+    @property(StarRowView) starRow: StarRowView | null = null;
+    @property(UIButton) primaryBtn: UIButton | null = null;
+    @property(UIButton) secondaryBtn: UIButton | null = null;
 
-    build(width: number, height: number): void {
-        this._width = width;
-        this._height = height;
-        // 遮罩要盖住整个可视区域（含 SHOW_ALL 的留边），否则宽窗口下两侧会亮着一条
-        const viewport = LayoutAdapter.viewport(width, height);
-        const maskW = Math.max(width, viewport.width) + 40;
-        const maskH = Math.max(height, viewport.height) + 40;
-        setSize(this.node, maskW, maskH);
-        this.node.addComponent(BlockInputEvents);
+    private _openedAt = 0;
 
-        const mask = createNode('Mask', this.node);
-        setSize(mask, maskW, maskH);
-        const g = mask.addComponent(Graphics);
-        g.fillColor = THEME.mask;
-        g.rect(-maskW / 2, -maskH / 2, maskW, maskH);
-        g.fill();
-        getOpacity(mask).opacity = 0;
-        this._mask = mask;
-        this.node.active = false;
-    }
-
-    get visible(): boolean {
-        return this._visible;
+    onOpen(): void {
+        this.assertRefs([
+            ['card', this.card],
+            ['titleLabel', this.titleLabel],
+            ['primaryBtn', this.primaryBtn],
+        ]);
+        this.node.active = true;
     }
 
     show(opts: DialogOptions): void {
-        this._visible = true;
         this.node.active = true;
+        this._openedAt = Date.now();
+        setLabel(this.tagLabel, opts.tag ?? '');
+        setActive(this.tagLabel?.node ?? null, !!opts.tag);
+        setLabel(this.titleLabel, opts.title);
+        setLabel(this.scoreLabel, opts.score ?? '');
+        setActive(this.scoreLabel?.node ?? null, !!opts.score);
+        setLabel(this.subtitleLabel, opts.subtitle ?? '');
+        setActive(this.subtitleLabel?.node ?? null, !!opts.subtitle);
+        setActive(this.starRow?.node ?? null, opts.stars !== undefined);
+        if (opts.stars !== undefined) this.starRow?.setStars(opts.stars);
 
-        if (this._card) {
-            this._card.destroy();
-            this._card = null;
+        const primary = opts.buttons[0] ?? null;
+        const secondary = opts.buttons[1] ?? null;
+        this._bind(this.primaryBtn, primary, 'primary');
+        this._bind(this.secondaryBtn, secondary, 'secondary');
+
+        if (this.card) {
+            const op = this.card.getComponent(UIOpacity) || this.card.addComponent(UIOpacity);
+            op.opacity = 0;
+            this.card.setScale(0.88, 0.88, 1);
+            tween(op).to(0.16, { opacity: 255 }).start();
+            tween(this.card).to(0.22, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
         }
-
-        const cardW = 600;
-        let cardH = 96;
-        if (opts.tag) cardH += 30;
-        cardH += 56;
-        if (opts.score) cardH += 84;
-        if (opts.subtitle) cardH += 46;
-        cardH += opts.buttons.length * 108;
-        cardH += 24;
-
-        const card = createPanel(this.node, cardW, cardH, { radius: 32, shadowOffset: 6 });
-        card.setPosition(0, 20, 0);
-        this._card = card;
-
-        let cursor = cardH / 2 - 46;
-        if (opts.tag) {
-            createLabel(card, opts.tag, {
-                size: 18,
-                color: THEME.textSecondary,
-                width: cardW - 80,
-            }).node.setPosition(0, cursor, 0);
-            cursor -= 34;
-        }
-
-        createLabel(card, opts.title, {
-            size: 38,
-            bold: true,
-            width: cardW - 80,
-            height: 48,
-        }).node.setPosition(0, cursor, 0);
-        cursor -= 54;
-
-        if (opts.score) {
-            createLabel(card, opts.score, {
-                size: 76,
-                bold: true,
-                color: THEME.primary,
-                width: cardW - 80,
-                height: 84,
-            }).node.setPosition(0, cursor - 12, 0);
-            cursor -= 96;
-        }
-
-        if (opts.subtitle) {
-            createLabel(card, opts.subtitle, {
-                size: 22,
-                color: THEME.textSecondary,
-                width: cardW - 80,
-                height: 34,
-            }).node.setPosition(0, cursor, 0);
-            cursor -= 46;
-        }
-
-        for (const btn of opts.buttons) {
-            const isPrimary = (btn.kind ?? 'primary') === 'primary';
-            const node = createNode(`Btn_${btn.text}`, card);
-            const w = cardW - 96;
-            const h = isPrimary ? 96 : 64;
-            setSize(node, w, h);
-            node.setPosition(0, cursor - h / 2, 0);
-            const comp = node.addComponent(UIButton);
-            comp.init({
-                width: w,
-                height: h,
-                text: btn.text,
-                kind: isPrimary ? 'primary' : 'secondary',
-                fontSize: isPrimary ? 32 : 26,
-                onClick: () => {
-                    this.hide();
-                    btn.onClick();
-                },
-            });
-            cursor -= 104;
-        }
-
-        const op = getOpacity(card);
-        op.opacity = 0;
-        card.setScale(0.88, 0.88, 1);
-        tween(op).to(0.16, { opacity: 255 }).start();
-        tween(card).to(0.22, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
-
-        if (this._mask) {
-            tween(getOpacity(this._mask)).to(0.2, { opacity: 255 }).start();
+        if (this.mask) {
+            const mop = this.mask.getComponent(UIOpacity) || this.mask.addComponent(UIOpacity);
+            mop.opacity = 0;
+            tween(mop).to(0.2, { opacity: 255 }).start();
         }
     }
 
+    private _bind(btn: UIButton | null, data: DialogButton | null, kind: 'primary' | 'secondary'): void {
+        if (!btn) return;
+        setActive(btn.node, !!data);
+        if (!data) return;
+        btn.setKind(data.kind ?? kind);
+        btn.setText(data.text);
+        btn.setInteractable(true);
+        btn.onClick = () => {
+            if (Date.now() - this._openedAt < 260) return;
+            btn.node.active = false;
+            data.onClick();
+        };
+    }
+
     hide(): void {
-        this._visible = false;
-        if (this._mask) getOpacity(this._mask).opacity = 0;
+        this.node.active = false;
+    }
+
+    onClose(): void {
         this.node.active = false;
     }
 }

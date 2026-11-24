@@ -1,0 +1,15 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "f0245c4b-067b-4289-95b0-2184b1f66453",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleName": "daily",
+    "priority": 1,
+    "compressionType": {},
+    "isRemoteBundle": false
+  }
+}

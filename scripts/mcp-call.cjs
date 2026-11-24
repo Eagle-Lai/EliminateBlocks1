@@ -12,6 +12,7 @@
  * 端口可用环境变量 CCREATOR_MCP_PORT 覆盖。
  */
 const http = require('http');
+const fs = require('fs');
 
 const PORT = Number(process.env.CCREATOR_MCP_PORT || 3945);
 
@@ -79,7 +80,10 @@ function parse(body) {
     }
 
     const tool = args[0];
-    const toolArgs = args[1] ? JSON.parse(args[1]) : {};
+    // 支持 @file：参数过大（如整段 scene_script）时从文件读 JSON，避开命令行长度限制
+    let rawArgs = args[1];
+    if (rawArgs && rawArgs.startsWith('@')) rawArgs = fs.readFileSync(rawArgs.slice(1), 'utf8');
+    const toolArgs = rawArgs ? JSON.parse(rawArgs) : {};
     const res = parse((await post({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: tool, arguments: toolArgs } }, sid)).body);
     const result = res.result || res.error || res;
     if (result && result.content) {

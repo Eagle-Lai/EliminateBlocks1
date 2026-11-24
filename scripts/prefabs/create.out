@@ -1,0 +1,5 @@
+
+> mcp:call
+> node scripts/mcp-call.cjs editor_script @scripts/prefabs/create.json
+
+Message does not exist: scene - delete-node

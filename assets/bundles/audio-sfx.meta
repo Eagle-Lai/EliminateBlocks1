@@ -1,0 +1,15 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "d36cfbde-b1f8-46d2-8a50-09b8bcea1786",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleName": "audio-sfx",
+    "priority": 1,
+    "compressionType": {},
+    "isRemoteBundle": false
+  }
+}

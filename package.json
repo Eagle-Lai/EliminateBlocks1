@@ -11,10 +11,25 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx tests/core.test.ts",
+    "test": "tsx tests/core.test.ts && tsx tests/gameplay.test.ts && tsx tests/content.test.ts",
     "smoke": "node scripts/smoke.cjs",
     "serve:build": "python -m http.server 8123 --directory build/web-mobile",
     "mcp:check": "node scripts/mcp-check.cjs",
-    "mcp:call": "node scripts/mcp-call.cjs"
+    "mcp:call": "node scripts/mcp-call.cjs",
+    "gen:levels": "tsx scripts/gen-content/levels.ts",
+    "gen:daily": "tsx scripts/gen-content/daily.ts",
+    "art:gen": "python scripts/art/gen_art.py",
+    "art:post": "python scripts/art/postprocess.py",
+    "art:meta": "python scripts/art/apply-meta.py",
+    "audio:synth": "python scripts/audio/synth.py",
+    "verify:content": "tsx scripts/verify-content.ts",
+    "verify:assets": "node scripts/verify-assets.cjs",
+    "verify:prefabs": "node scripts/verify-prefabs.cjs",
+    "verify:ui": "node scripts/verify-ui.cjs",
+    "verify:font": "python scripts/verify-font.py",
+    "verify:package": "node scripts/verify-package.cjs",
+    "verify:all": "node scripts/verify-all.cjs",
+    "shot:screens": "node scripts/shot-screens.cjs",
+    "smoke:ui": "node scripts/smoke-ui.cjs"
   }
 }

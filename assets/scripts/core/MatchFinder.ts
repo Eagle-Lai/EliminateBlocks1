@@ -2,8 +2,11 @@
  * 同色连通块查找（4 邻域 BFS）。
  * 判定条件（与原型一致，禁止放宽）：
  *   size >= minGroupSize 且 不同 pid 数 >= 2
+ *
+ * 新增（可选）：skipKinds 中的阻挡块（石块/脆霜）不参与同色连通，
+ * 但仍占格、仍受重力影响；不传时行为与基线完全一致。
  */
-import type { BoardModel, BlockData } from './BoardModel';
+import type { BoardModel, BlockData, BlockKind } from './BoardModel';
 import type { Cell } from '../config/PieceShapeTable';
 
 export interface GroupInfo {
@@ -23,6 +26,7 @@ export function findGroups(
     board: BoardModel,
     minGroupSize = 3,
     requireTwoPieces = true,
+    skipKinds?: readonly BlockKind[],
 ): GroupInfo[] {
     const { rows, cols } = board;
     const seen = new Uint8Array(rows * cols);
@@ -32,6 +36,8 @@ export function findGroups(
         for (let c = 0; c < cols; c++) {
             const start = board.get(r, c);
             if (!start || seen[r * cols + c]) continue;
+            if (start.type < 0) continue;
+            if (skipKinds && start.kind && skipKinds.indexOf(start.kind) >= 0) continue;
 
             const stack: number[] = [r * cols + c];
             seen[r * cols + c] = 1;
@@ -54,6 +60,7 @@ export function findGroups(
                     if (seen[nkey]) continue;
                     const nb = board.get(nr, nc);
                     if (!nb || nb.type !== block.type) continue;
+                    if (skipKinds && nb.kind && skipKinds.indexOf(nb.kind) >= 0) continue;
                     seen[nkey] = 1;
                     stack.push(nkey);
                 }
@@ -91,4 +98,20 @@ export function biggestAnchor(groups: readonly GroupInfo[]): Cell {
         if (g.size > biggest.size) biggest = g;
     }
     return biggest.cells[Math.floor(biggest.cells.length / 2)];
+}
+
+/** 组是否横竖共线（用于特殊块判定） */
+export function groupLineAxis(cells: readonly Cell[]): 'h' | 'v' | null {
+    if (cells.length < 2) return null;
+    const r0 = cells[0].r;
+    const c0 = cells[0].c;
+    let sameRow = true;
+    let sameCol = true;
+    for (const cell of cells) {
+        if (cell.r !== r0) sameRow = false;
+        if (cell.c !== c0) sameCol = false;
+    }
+    if (sameRow) return 'h';
+    if (sameCol) return 'v';
+    return null;
 }

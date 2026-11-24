@@ -1,128 +1,171 @@
 /**
- * 当前骨牌视图：4 个方块 + 4 个落点虚影。
- * 位置完全由 PieceModel 推导，不做插值（保持"格子手感"），仅旋转/锁定有轻微形变反馈。
+ * 当前骨牌视图：4 个 PieceCell + 4 个 GhostCell（全部 Prefab 池化）。
+ * 位置完全由 PieceModel 推导；镜像异变时额外显示一份水平翻转的副本。
  */
-import { _decorator, Color, Component, Graphics, Node, SpriteFrame, Vec3, tween } from 'cc';
-import { THEME } from '../config/ThemeConfig';
+import {
+    _decorator,
+    Color,
+    Component,
+    Node,
+    Prefab,
+    Sprite,
+    SpriteFrame,
+    UIOpacity,
+    UITransform,
+    Vec3,
+    instantiate,
+    tween,
+} from 'cc';
 import type { PieceModel } from '../core/PieceModel';
-import { BlockView } from './BlockView';
-import { createNode, setSize } from '../ui/UIFactory';
+import { THEME } from '../config/ThemeConfig';
+import { assets } from '../service/AssetService';
 
-const { ccclass } = _decorator;
+const { ccclass, property } = _decorator;
+
+interface CellSlot {
+    node: Node;
+    base: Sprite | null;
+    extra: Sprite | null;
+    opacity: UIOpacity | null;
+}
 
 @ccclass('PieceView')
 export class PieceView extends Component {
-    private _blocks: BlockView[] = [];
-    private _ghosts: Node[] = [];
+    @property(Prefab) pieceCellPrefab: Prefab | null = null;
+    @property(Prefab) ghostCellPrefab: Prefab | null = null;
+    @property(Node) pieceLayer: Node | null = null;
+    @property(Node) ghostLayer: Node | null = null;
+
+    private _frames: (SpriteFrame | null)[] = [];
+    private _cells: CellSlot[] = [];
+    private _mirrors: CellSlot[] = [];
+    private _ghosts: CellSlot[] = [];
     private _cell = 60;
     private _boardW = 600;
     private _boardH = 960;
-    private _frames: (SpriteFrame | null)[] = [];
-    /** 当前虚影颜色，避免每次移动都重画 Graphics */
-    private _ghostType = -1;
 
     init(frames: (SpriteFrame | null)[]): void {
         this._frames = frames;
         for (let i = 0; i < 4; i++) {
-            this._blocks.push(new BlockView(this.node, `PieceCell_${i}`));
-            const ghost = createNode(`GhostCell_${i}`, this.node);
-            ghost.addComponent(Graphics);
-            this._ghosts.push(ghost);
+            this._cells.push(this._spawnPieceCell(this.pieceLayer, `Piece_${i}`));
+            this._mirrors.push(this._spawnPieceCell(this.pieceLayer, `Mirror_${i}`));
+            this._ghosts.push(this._spawnGhostCell(`Ghost_${i}`));
         }
         this.setVisible(false);
+    }
+
+    private _spawnPieceCell(layer: Node | null, name: string): CellSlot {
+        const prefab = this.pieceCellPrefab ?? assets.getPrefab('prefabs/game/PieceCell');
+        if (!prefab || !layer) throw new Error('PieceView：PieceCell 未绑定');
+        const node = instantiate(prefab);
+        node.name = name;
+        node.setParent(layer);
+        node.active = false;
+        return {
+            node,
+            base: node.getComponent(Sprite),
+            extra: node.getChildByName('Highlight')?.getComponent(Sprite) ?? null,
+            opacity: node.getComponent(UIOpacity),
+        };
+    }
+
+    private _spawnGhostCell(name: string): CellSlot {
+        const prefab = this.ghostCellPrefab ?? assets.getPrefab('prefabs/game/GhostCell');
+        if (!prefab || !this.ghostLayer) throw new Error('PieceView：GhostCell 未绑定');
+        const node = instantiate(prefab);
+        node.name = name;
+        node.setParent(this.ghostLayer);
+        node.active = false;
+        return {
+            node,
+            base: node.getChildByName('Fill')?.getComponent(Sprite) ?? null,
+            extra: node.getChildByName('GoldBorder')?.getComponent(Sprite) ?? null,
+            opacity: node.getComponent(UIOpacity),
+        };
     }
 
     layout(cell: number, boardW: number, boardH: number): void {
         this._cell = cell;
         this._boardW = boardW;
         this._boardH = boardH;
-        for (const block of this._blocks) block.setCellSize(cell);
-        for (const ghost of this._ghosts) {
-            setSize(ghost, cell, cell);
-            this._drawGhost(ghost, cell, Math.max(0, this._ghostType));
+        for (const slot of [...this._cells, ...this._mirrors, ...this._ghosts]) {
+            const ui = slot.node.getComponent(UITransform);
+            if (ui) ui.setContentSize(cell * 0.96, cell * 0.96);
         }
     }
 
     /**
-     * 落点虚影：同色淡填充 + 更实的描边。
-     * 纯白描边在奶白色空格上几乎看不见（对比度不足 5%），所以用骨牌色做双通道提示。
+     * @param piece 当前骨牌
+     * @param ghostY 落点 y（与 piece.y 同向）
+     * @param dir 1 向下 / -1 向上（倒悬）
+     * @param mirrorX 镜像副本的 x（null 表示不显示镜像）
      */
-    private _drawGhost(node: Node, cell: number, type: number): void {
-        const g = node.getComponent(Graphics) || node.addComponent(Graphics);
-        const color = THEME.blockColors[type] ?? THEME.blockColors[0];
-        const size = cell * 0.82;
-        const radius = size * 0.22;
-        g.clear();
-        g.fillColor = new Color(color.r, color.g, color.b, 58);
-        g.roundRect(-size / 2, -size / 2, size, size, radius);
-        g.fill();
-        g.lineWidth = Math.max(2, cell * 0.07);
-        g.strokeColor = new Color(color.r, color.g, color.b, 200);
-        g.roundRect(-size / 2, -size / 2, size, size, radius);
-        g.stroke();
-    }
-
-    sync(piece: PieceModel, ghostY: number): void {
+    sync(piece: PieceModel, ghostY: number, dir: 1 | -1 = 1, mirrorX: number | null = null): void {
         this.setVisible(true);
-        if (piece.color !== this._ghostType) {
-            this._ghostType = piece.color;
-            for (const ghost of this._ghosts) this._drawGhost(ghost, this._cell, this._ghostType);
-        }
+        const frame = this._frames[piece.color] ?? null;
         for (let i = 0; i < 4; i++) {
-            const block = this._blocks[i];
-            const ghost = this._ghosts[i];
             const cellData = piece.cells[i];
+            const slot = this._cells[i];
+            const mirror = this._mirrors[i];
+            const ghost = this._ghosts[i];
             if (!cellData) {
-                block.setVisible(false);
-                ghost.active = false;
+                slot.node.active = false;
+                mirror.node.active = false;
+                ghost.node.active = false;
                 continue;
             }
-            const r = piece.y + cellData.r;
+            const r = dir === 1 ? piece.y + cellData.r : piece.y - cellData.r;
             const c = piece.x + cellData.c;
+            this._place(slot, frame, r, c);
 
-            block.setVisible(true);
-            block.applyType(piece.color, this._frames[piece.color] ?? null);
-            block.setCellPos(r, c, this._boardW, this._boardH, this._cell);
+            if (mirrorX !== null) {
+                let maxC = 0;
+                for (const p of piece.cells) maxC = Math.max(maxC, p.c);
+                mirror.node.active = true;
+                this._place(mirror, frame, r, mirrorX + (maxC - cellData.c));
+            } else {
+                mirror.node.active = false;
+            }
 
-            const gr = ghostY + cellData.r;
-            ghost.active = gr >= 0;
-            if (gr >= 0) {
-                ghost.setPosition(
+            const gr = dir === 1 ? ghostY + cellData.r : ghostY - cellData.r;
+            ghost.node.active = gr >= 0 && gr < 16;
+            if (ghost.node.active) {
+                ghost.node.setPosition(
                     -this._boardW / 2 + (c + 0.5) * this._cell,
                     this._boardH / 2 - (gr + 0.5) * this._cell,
                     0,
                 );
+                const color = THEME.blockColors[piece.color] ?? THEME.blockColors[0];
+                if (ghost.base) ghost.base.color = new Color(color.r, color.g, color.b, 45);
+                if (ghost.extra) ghost.extra.color = new Color(255, 196, 64, 210);
             }
         }
     }
 
+    private _place(slot: CellSlot, frame: SpriteFrame | null, r: number, c: number): void {
+        slot.node.active = true;
+        if (slot.base && slot.base.spriteFrame !== frame) slot.base.spriteFrame = frame;
+        slot.node.setPosition(
+            -this._boardW / 2 + (c + 0.5) * this._cell,
+            this._boardH / 2 - (r + 0.5) * this._cell,
+            0,
+        );
+    }
+
     setVisible(visible: boolean): void {
-        for (const block of this._blocks) block.setVisible(visible);
-        for (const ghost of this._ghosts) ghost.active = false;
         this.node.active = visible;
+        if (!visible) {
+            for (const slot of [...this._cells, ...this._mirrors, ...this._ghosts]) slot.node.active = false;
+        }
     }
 
     playRotate(): void {
         this.node.setScale(1.05, 1.05, 1);
-        tween(this.node)
-            .to(0.08, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' })
-            .start();
+        tween(this.node).to(0.08, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
     }
 
     playLock(): void {
         this.node.setScale(1.06, 0.94, 1);
-        tween(this.node)
-            .to(0.09, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' })
-            .start();
+        tween(this.node).to(0.09, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
     }
-}
-
-/** 供外部计算虚影位置 */
-export function ghostRow(
-    piece: PieceModel,
-    collidesFn: (cells: typeof piece.cells, x: number, y: number) => boolean,
-): number {
-    let y = piece.y;
-    while (!collidesFn(piece.cells, piece.x, y + 1)) y++;
-    return y;
 }

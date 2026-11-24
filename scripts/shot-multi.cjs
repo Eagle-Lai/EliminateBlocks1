@@ -33,7 +33,7 @@ const VIEWPORTS = [
         page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`));
         await page.setViewport({ width: vp.w, height: vp.h, deviceScaleFactor: 1 });
         await page.goto(URL, { waitUntil: 'networkidle2', timeout: 60000 });
-        await sleep(2600);
+        await sleep(6500);
         const info = await page.evaluate(() => {
             const cc = window.cc;
             const scene = cc && cc.director && cc.director.getScene();

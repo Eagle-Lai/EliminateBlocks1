@@ -216,3 +216,43 @@ npm run mcp:call -- --schema component_remove            # 查某个工具的入
 - **Playwright MCP** 装在 `C:\Users\78296\.workbuddy\mcp-servers`，用 WorkBuddy 自带 node 启动（`mcp.json` 里是绝对路径）；WorkBuddy 升级换 node 版本后要同步改这个路径。
 - 截图默认落在 `.workbuddy/shots/`。
 - `mcp.json` 里另有 `unityMCP`，只对 Unity 工程有用，与本工程无关。
+
+---
+
+## 11. v2 更新（Prefab 化 + 三模式 + 内容/美术/音频管线）
+
+### 新增能力
+
+- **三模式**：无尽 / 关卡（6 章 × 20 关）/ 每日残局（365 题，84 个异变日）。
+- **6 套玩法**：异变 8×3、特殊块 5 种、糖能糖爆、天赋 30 个、影子、回放。
+- **UI 100% Prefab**：38 个预制体（`assets/resources/prefabs/**`），`view/`、`ui/`、`controller/` 0 处 `new Node` / `Graphics`。
+- **棋盘也 Prefab 化**：`GridCell / Block / PieceCell / GhostCell / FogCell` 全部实例化 + 池化。
+- **分包**：`audio-bgm`、`ch1..ch6`、`daily`、`audio-sfx`；章节背景与 BGM 进章加载，SFX 开机预载。
+
+### 命令
+
+```bash
+npm run gen:levels    # 120 关（公式 + 机器人可达率校准）
+npm run gen:daily     # 365 题（beam search + 回放校验）
+npm run art:gen       # 100 张图（程序化，色板统一）
+npm run art:meta      # 9-slice / packable
+npm run audio:synth   # 56 SFX + 8 BGM
+npm run typecheck
+npm run test          # 137 项（29 基线 + 80 玩法 + 28 内容）
+npm run verify:all
+npm run smoke:ui      # 逐屏打开 + UI 栈断言
+npm run shot:screens  # 5 关键屏 × 3 分辨率
+```
+
+### 文档
+
+- 实施报告与缺口：`docs/implementation-report.md`
+- 120 关计划与可达率：`docs/level-plan.csv`、`docs/level-report.md`
+- 365 题报告：`docs/daily-report.md`
+- 美术审计：`art_report.csv`
+- 关键屏幕截图：`docs/screenshots/`
+
+### 备注
+
+- 场景新增 `UIRoot`（四层 + `UIManager`），`GameEntry` 绑定其 `uiRoot`；入口仍是 Canvas 上的 cid 序列化组件。
+- 单测口径已从 29 项扩到 137 项；`npm test` 会依次跑三组。

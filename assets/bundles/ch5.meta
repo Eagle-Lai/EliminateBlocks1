@@ -1,0 +1,15 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "0356568d-0b8c-4c88-929a-19f0029a62d0",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleName": "ch5",
+    "priority": 1,
+    "compressionType": {},
+    "isRemoteBundle": false
+  }
+}

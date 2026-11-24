@@ -4,6 +4,7 @@
  */
 const puppeteer = require('puppeteer-core');
 const path = require('path');
+const fs = require('fs');
 
 const URL = process.argv[2] || 'http://127.0.0.1:8123/';
 const OUT_DIR = process.argv[3] || path.resolve(__dirname, '../.tmp_shot');
@@ -28,9 +29,11 @@ async function readState(page) {
         const scene = cc && cc.director && cc.director.getScene();
         if (!scene) return { ok: false };
         let ctrl = null;
+        const klass = cc.js.getClassByName('GameController');
         const walk = (n) => {
-            for (const c of n.components) {
-                if (c && c.constructor && c.constructor.name === 'GameController') ctrl = c;
+            if (klass) {
+                const c = n.getComponent(klass);
+                if (c) ctrl = c;
             }
             n.children.forEach(walk);
         };
@@ -49,6 +52,7 @@ async function readState(page) {
 }
 
 (async () => {
+    fs.mkdirSync(OUT_DIR, { recursive: true });
     const browser = await puppeteer.launch({
         executablePath: CHROME,
         headless: 'new',
@@ -59,18 +63,23 @@ async function readState(page) {
     const errors = [];
     page.on('console', (msg) => {
         const t = msg.text();
+        if (/404|audio-sfx|audio-bgm|favicon/.test(t)) return;
         if (msg.type() === 'error' || msg.type() === 'warning') errors.push(`[${msg.type()}] ${t}`);
     });
     page.on('pageerror', (err) => errors.push(`[pageerror] ${err.message}`));
 
     await page.goto(URL, { waitUntil: 'networkidle2', timeout: 60000 });
+    await sleep(6500);
+    // 首页 → 无尽模式（设计坐标 0,80）
+    await page.mouse.click(375, 587);
+    await sleep(1600);
     console.log('initial:', JSON.stringify(await waitForController(page)));
     await sleep(600);
     await page.screenshot({ path: path.join(OUT_DIR, 'shot_start.png') });
 
     // 直落按钮位置（750×1334 设计分辨率下 1:1 映射）
-    const dropX = 555;
-    const dropY = 1214;
+    const dropX = 515;
+    const dropY = 1194;
     for (let i = 0; i < 10; i++) {
         await page.mouse.click(dropX, dropY);
         await sleep(520);
@@ -78,6 +87,11 @@ async function readState(page) {
 
     const mid = await readState(page);
     console.log('after 10 drops:', JSON.stringify(mid));
+    if (!mid.ok || !(mid.score > 0)) {
+        console.error('SMOKE FAILED: 10 次直落后分数未增加');
+        await browser.close();
+        process.exit(1);
+    }
     await page.screenshot({ path: path.join(OUT_DIR, 'shot_play.png') });
 
     // 一路直落到堆满，验证结算弹窗与判负

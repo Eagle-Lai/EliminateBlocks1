@@ -50,7 +50,7 @@ export const THEME = {
     blockShade: new Color(0, 0, 0, 30),
     /** 资源路径（相对 assets/resources/） */
     art: {
-        bg: 'art/bg/bg_main',
+        bg: 'art/bg/bg_home',
         blocks: [
             'art/blocks/block_0',
             'art/blocks/block_1',

@@ -1,20 +1,45 @@
 /**
- * 棋盘视图：静态网格背景（单 Graphics，一次绘制）+ 方块节点池 + 消除/下落动画。
- * 用 BlockData 对象身份做 diff，因此重力与消行位移都能自动得到起点与终点。
+ * 棋盘视图：GridCell / Block / FogCell 全部来自 Prefab 池化实例。
+ * 用 BlockData 对象身份做 diff，重力与消行位移因此能拿到准确起终点。
  */
-import { _decorator, Color, Component, Graphics, Node, SpriteFrame, Tween, Vec3 } from 'cc';
-import { THEME } from '../config/ThemeConfig';
+import {
+    _decorator,
+    Component,
+    Node,
+    Prefab,
+    Sprite,
+    SpriteFrame,
+    Tween,
+    UITransform,
+    Vec3,
+    instantiate,
+    tween,
+} from 'cc';
 import type { BlockData, BoardModel } from '../core/BoardModel';
 import type { Cell } from '../config/PieceShapeTable';
 import { BlockView } from './BlockView';
-import { BurstPool } from '../fx/BurstPool';
-import { createNode, drawRoundRect, setSize } from '../ui/UIFactory';
 import { tweenNode } from '../utils/Anim';
+import { assets } from '../service/AssetService';
 
-const { ccclass } = _decorator;
+const { ccclass, property } = _decorator;
+
+export interface BoardViewOptions {
+    /** 迷雾可见矩阵（true=可见） */
+    visible?: boolean[][];
+    fogRows?: number;
+}
 
 @ccclass('BoardView')
 export class BoardView extends Component {
+    @property(Prefab) cellPrefab: Prefab | null = null;
+    @property(Prefab) blockPrefab: Prefab | null = null;
+    @property(Prefab) fogPrefab: Prefab | null = null;
+    @property(Node) gridRoot: Node | null = null;
+    @property(Node) blockLayer: Node | null = null;
+    @property(Node) fogLayer: Node | null = null;
+    @property(Sprite) tray: Sprite | null = null;
+    @property(Sprite) frame: Sprite | null = null;
+
     private _cols = 10;
     private _rows = 16;
     private _cell = 60;
@@ -22,21 +47,15 @@ export class BoardView extends Component {
     private _boardH = 960;
 
     private _frames: (SpriteFrame | null)[] = [];
-    private _bgNode: Node | null = null;
-    private _bg: Graphics | null = null;
-    private _blockLayer: Node | null = null;
-    private _burst: BurstPool | null = null;
-
+    private _cells: Node[] = [];
     private _views = new Map<BlockData, BlockView>();
     private _pool: BlockView[] = [];
+    private _applied = new Map<BlockData, string>();
+    private _fogPool: Node[] = [];
+    private _fogActive: Node[] = [];
 
     init(frames: (SpriteFrame | null)[]): void {
         this._frames = frames;
-        this._blockLayer = createNode('BlockLayer', this.node);
-        this._bgNode = createNode('GridBg', this.node);
-        this._bgNode.setSiblingIndex(0);
-        this._bg = this._bgNode.addComponent(Graphics);
-        this._burst = new BurstPool(this.node, 8);
     }
 
     layout(cols: number, rows: number, cell: number): void {
@@ -45,54 +64,61 @@ export class BoardView extends Component {
         this._cell = cell;
         this._boardW = cell * cols;
         this._boardH = cell * rows;
-        setSize(this.node, this._boardW, this._boardH);
-        if (this._bgNode) setSize(this._bgNode, this._boardW, this._boardH);
-        this._drawBackground();
-        this._applyCellSize();
+
+        const ut = this.node.getComponent(UITransform);
+        if (ut) ut.setContentSize(this._boardW, this._boardH);
+
+        if (this.tray) {
+            const tu = this.tray.node.getComponent(UITransform);
+            if (tu) tu.setContentSize(this._boardW + 18, this._boardH + 18);
+        }
+        if (this.frame) {
+            const fu = this.frame.node.getComponent(UITransform);
+            if (fu) fu.setContentSize(this._boardW + 22, this._boardH + 22);
+        }
+
+        this._buildGrid();
+        for (const view of this._views.values()) view.setCellSize(cell);
+        for (const view of this._pool) view.setCellSize(cell);
+        this._layoutVisuals();
     }
 
-    private _drawBackground(): void {
-        const g = this._bg;
-        if (!g) return;
-        const cell = this._cell;
-        const w = this._boardW;
-        const h = this._boardH;
+    private _prefab(key: string, current: Prefab | null): Prefab | null {
+        return current ?? assets.getPrefab(`prefabs/${key}`);
+    }
 
-        g.clear();
-        drawRoundRect(g, w + 18, h + 18, 26, THEME.boardTray, THEME.boardTrayBorder, 3);
-
-        for (let r = 0; r < this._rows; r++) {
-            for (let c = 0; c < this._cols; c++) {
-                const x = -w / 2 + c * cell + 2;
-                const y = h / 2 - (r + 1) * cell + 2;
-                g.fillColor = THEME.emptyCell;
-                g.roundRect(x, y, cell - 4, cell - 4, cell * 0.18);
-                g.fill();
-            }
+    private _buildGrid(): void {
+        const prefab = this._prefab('game/GridCell', this.cellPrefab);
+        if (!this.gridRoot || !prefab) return;
+        const need = this._cols * this._rows;
+        while (this._cells.length < need) {
+            const node = instantiate(prefab);
+            node.setParent(this.gridRoot);
+            this._cells.push(node);
+        }
+        for (let i = 0; i < this._cells.length; i++) {
+            const node = this._cells[i];
+            node.active = i < need;
+            if (!node.active) continue;
+            const r = Math.floor(i / this._cols);
+            const c = i % this._cols;
+            const ui = node.getComponent(UITransform);
+            if (ui) ui.setContentSize(this._cell * 0.92, this._cell * 0.92);
+            node.setPosition(
+                -this._boardW / 2 + (c + 0.5) * this._cell,
+                this._boardH / 2 - (r + 0.5) * this._cell,
+                0,
+            );
         }
     }
 
-    private _applyCellSize(): void {
+    private _layoutVisuals(): void {
         for (const view of this._views.values()) {
-            view.setCellSize(this._cell);
-            view.applyType(view.type, this._frames[view.type] ?? null);
-        }
-        for (const view of this._pool) view.setCellSize(this._cell);
-        this.rebuildVisualOnly();
-    }
-
-    /** 只刷新位置，不做动画（布局变化时调用） */
-    private rebuildVisualOnly(): void {
-        for (const [block, view] of this._views) {
-            void block;
-            if (view.r >= 0 && view.c >= 0) {
-                view.setCellPos(view.r, view.c, this._boardW, this._boardH, this._cell);
-            }
+            if (view.r >= 0) view.setCellPos(view.r, view.c, this._boardW, this._boardH, this._cell);
         }
     }
 
-    /** 与模型对齐；moved 的块会从旧位置补间到新位置 */
-    async rebuild(model: BoardModel, animateMs = 0): Promise<void> {
+    async rebuild(model: BoardModel, animateMs = 0, opts: BoardViewOptions = {}): Promise<void> {
         const present = new Set<BlockData>();
         const animations: Promise<void>[] = [];
 
@@ -107,56 +133,93 @@ export class BoardView extends Component {
                     view = this._obtain();
                     this._views.set(block, view);
                     view.setCellSize(this._cell);
-                    view.applyType(block.type, this._frames[block.type] ?? null);
+                    view.applyBlock(block, this._frames);
+                    this._applied.set(block, this._keyOf(block));
                     view.setCellPos(r, c, this._boardW, this._boardH, this._cell);
                     view.resetVisual();
                     view.playSpawn();
-                } else if (view.r !== r || view.c !== c) {
-                    const x = -this._boardW / 2 + (c + 0.5) * this._cell;
-                    const y = this._boardH / 2 - (r + 0.5) * this._cell;
-                    view.r = r;
-                    view.c = c;
-                    if (animateMs > 0) {
-                        Tween.stopAllByTarget(view.node);
-                        animations.push(
-                            tweenNode(view.node, animateMs, { position: new Vec3(x, y, 0) }, 'quadOut'),
-                        );
-                    } else {
-                        view.node.setPosition(x, y, 0);
+                } else {
+                    const key = this._keyOf(block);
+                    if (this._applied.get(block) !== key) {
+                        view.applyBlock(block, this._frames);
+                        this._applied.set(block, key);
+                    }
+                    if (view.r !== r || view.c !== c) {
+                        const x = -this._boardW / 2 + (c + 0.5) * this._cell;
+                        const y = this._boardH / 2 - (r + 0.5) * this._cell;
+                        view.r = r;
+                        view.c = c;
+                        if (animateMs > 0) {
+                            Tween.stopAllByTarget(view.node);
+                            animations.push(tweenNode(view.node, animateMs, { position: new Vec3(x, y, 0) }, 'quadOut'));
+                        } else {
+                            view.node.setPosition(x, y, 0);
+                        }
                     }
                 }
             }
         }
 
         const dead: BlockData[] = [];
-        for (const [block] of this._views) {
-            if (!present.has(block)) dead.push(block);
-        }
+        for (const [block] of this._views) if (!present.has(block)) dead.push(block);
         for (const block of dead) {
             const view = this._views.get(block);
             if (view) this._release(view);
             this._views.delete(block);
+            this._applied.delete(block);
         }
 
+        this._refreshFog(model, opts);
         await Promise.all(animations);
     }
 
-    /** 消除动画：缩小淡出 + 碎片迸射 */
+    private _keyOf(block: BlockData): string {
+        return `${block.type}|${block.kind ?? ''}|${block.special ?? ''}`;
+    }
+
+    private _refreshFog(model: BoardModel, opts: BoardViewOptions): void {
+        const fogRows = opts.fogRows ?? 0;
+        const fogPrefab = this._prefab('game/FogCell', this.fogPrefab);
+        if (!this.fogLayer || !fogPrefab || fogRows <= 0) {
+            for (const node of this._fogActive) node.active = false;
+            this._fogActive = [];
+            return;
+        }
+        for (const node of this._fogActive) node.active = false;
+        this._fogActive = [];
+        let index = 0;
+        for (let r = 0; r < Math.min(fogRows, model.rows); r++) {
+            for (let c = 0; c < model.cols; c++) {
+                const visible = opts.visible ? opts.visible[r]?.[c] !== false : false;
+                const block = model.get(r, c);
+                if (visible || !block) continue;
+                let node = this._fogPool[index];
+                if (!node) {
+                    node = instantiate(fogPrefab);
+                    node.setParent(this.fogLayer);
+                    this._fogPool.push(node);
+                }
+                index++;
+                node.active = true;
+                const ui = node.getComponent(UITransform);
+                if (ui) ui.setContentSize(this._cell, this._cell);
+                node.setPosition(
+                    -this._boardW / 2 + (c + 0.5) * this._cell,
+                    this._boardH / 2 - (r + 0.5) * this._cell,
+                    0,
+                );
+                this._fogActive.push(node);
+            }
+        }
+    }
+
     async playPop(model: BoardModel, cells: readonly Cell[], durationMs: number): Promise<void> {
         const tasks: Promise<void>[] = [];
         for (const cell of cells) {
             const block = model.get(cell.r, cell.c);
             if (!block) continue;
             const view = this._views.get(block);
-            if (!view) continue;
-            tasks.push(view.playPop(durationMs));
-            if (this._burst) {
-                this._burst.spawn(
-                    view.node.position.clone(),
-                    THEME.blockColors[block.type] ?? THEME.blockColors[0],
-                    this._cell * 0.42,
-                );
-            }
+            if (view) tasks.push(view.playPop(durationMs));
         }
         await Promise.all(tasks);
     }
@@ -177,13 +240,27 @@ export class BoardView extends Component {
     clearAll(): void {
         for (const view of this._views.values()) this._release(view);
         this._views.clear();
-        if (this._burst) this._burst.clear();
+        this._applied.clear();
+        for (const node of this._fogActive) node.active = false;
+        this._fogActive = [];
     }
 
     private _obtain(): BlockView {
-        const view = this._pool.pop() ?? new BlockView(this._blockLayer!);
-        view.setVisible(true);
+        const view = this._pool.pop() ?? this._createView();
+        view.node.active = true;
         view.resetVisual();
+        return view;
+    }
+
+    private _createView(): BlockView {
+        const prefab = this._prefab('game/Block', this.blockPrefab);
+        if (!prefab || !this.blockLayer) {
+            throw new Error('BoardView：Block Prefab 或 BlockLayer 未绑定');
+        }
+        const node = instantiate(prefab);
+        node.setParent(this.blockLayer);
+        const view = node.getComponent(BlockView);
+        if (!view) throw new Error('Block.prefab 根节点缺少 BlockView');
         return view;
     }
 
@@ -195,7 +272,6 @@ export class BoardView extends Component {
         this._pool.push(view);
     }
 
-    /** 屏幕/棋盘本地坐标 -> 行列 */
     localToCell(local: Vec3): { r: number; c: number } {
         const c = Math.floor((local.x + this._boardW / 2) / this._cell);
         const r = Math.floor((this._boardH / 2 - local.y) / this._cell);
@@ -220,5 +296,13 @@ export class BoardView extends Component {
 
     get boardH(): number {
         return this._boardH;
+    }
+
+    get cols(): number {
+        return this._cols;
+    }
+
+    get rows(): number {
+        return this._rows;
     }
 }

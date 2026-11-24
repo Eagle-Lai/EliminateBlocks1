@@ -9,5 +9,5 @@
     "skipLibCheck": true
   },
   /* 单测跑在 Node 上（npx tsx），不参与引擎工程编译 */
-  "exclude": ["tests", "node_modules", "library", "temp", "build"]
+  "exclude": ["tests", "scripts", "node_modules", "library", "temp", "build"]
 }
