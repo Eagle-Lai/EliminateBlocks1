@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-美术生产管线：按风格圣经程序化产出 100 张图（马卡龙果冻 / 糖果亮色）。
+美术生产管线：按风格圣经程序化产出 100 张图（v3「莓果奶霜」：莓粉 / 粉紫 / 蜜金 / 雪白）。
 
 为什么用程序化绘制而不是逐张生成：
   · 色板与光照必须完全统一（100 张图不能"每张都好看但不像一套"）；
@@ -20,26 +20,29 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 ART = os.path.join(ROOT, "assets", "resources", "art")
 
 # ────────────────────────── 风格圣经 ──────────────────────────
-STRAWBERRY = (255, 107, 91)
-ORANGE = (240, 178, 58)
-LIME = (78, 203, 138)
-SODA = (74, 157, 240)
-GRAPE = (169, 123, 240)
-CREAM = (255, 247, 236)
-EDGE = (246, 230, 211)
-GOLD = (255, 196, 64)
-INK = (59, 42, 31)
-INK_SOFT = (139, 115, 85)
+# v3「莓果奶霜」：莓粉主色 / 粉紫冷调背景 / 蜜金强调 / 可可莓墨文字。
+# 槽位名沿用 v2（STRAWBERRY=主色、ORANGE=橙、LIME=绿、SODA=蓝、GRAPE=紫），
+# 保证 make_special / 图标 / 章节等的取色语义不变。
+STRAWBERRY = (255, 92, 138)     # 莓粉（主色）
+ORANGE = (255, 176, 66)         # 芒果橙
+LIME = (62, 205, 168)           # 薄荷绿
+SODA = (88, 150, 255)           # 蓝莓蓝
+GRAPE = (168, 120, 244)         # 葡萄紫
+CREAM = (255, 250, 253)         # 雪白
+EDGE = (240, 222, 238)          # 背景边缘主色（粉紫，配 bg_home 底部渐变）
+GOLD = (255, 196, 64)           # 蜜金（星星/金币/金框，跨皮肤保留）
+INK = (74, 48, 62)              # 可可莓墨（文字主色）
+INK_SOFT = (154, 116, 136)      # 莓灰（文字次色）
 WHITE = (255, 255, 255)
 PALETTE = [STRAWBERRY, ORANGE, LIME, SODA, GRAPE]
 
 CHAPTER_THEMES = {
-    1: ((255, 246, 236), (255, 214, 224), (198, 240, 214)),   # 奶油/薄荷
-    2: ((246, 240, 255), (206, 214, 250), (236, 226, 255)),   # 薰衣草/银
-    3: ((255, 244, 230), (226, 184, 138), (168, 220, 210)),   # 铜/青
-    4: ((236, 248, 238), (150, 196, 160), (246, 200, 128)),   # 深绿/琥珀
-    5: ((242, 238, 255), (140, 220, 244), (255, 150, 220)),   # 霓虹糖
-    6: ((250, 238, 246), (120, 92, 150), (255, 208, 128)),    # 暮紫/金
+    1: ((255, 248, 250), (255, 222, 236), (255, 182, 208)),   # 莓粉奶霜
+    2: ((248, 244, 255), (216, 214, 250), (190, 180, 244)),   # 薰衣草
+    3: ((255, 246, 240), (250, 214, 196), (255, 170, 120)),   # 蜜橙
+    4: ((240, 250, 248), (190, 238, 224), (120, 210, 186)),   # 薄荷
+    5: ((244, 246, 255), (196, 220, 255), (120, 180, 250)),   # 蓝莓冰
+    6: ((252, 244, 252), (236, 208, 240), (210, 150, 230)),   # 桑葚
 }
 
 SS = 3  # 超采样倍数
@@ -102,7 +105,7 @@ def soft_shadow(canvas, box, r, offset=(0, 10), blur=18, alpha=52):
     d.rounded_rectangle(
         [box[0] + offset[0], box[1] + offset[1], box[2] + offset[0], box[3] + offset[1]],
         radius=r,
-        fill=(90, 60, 30, alpha),
+        fill=(80, 48, 66, alpha),
     )
     layer = layer.filter(ImageFilter.GaussianBlur(blur))
     canvas.alpha_composite(layer)
@@ -142,7 +145,7 @@ def make_background(rel, top, mid, accent, seed):
     # 暗角
     vig = Image.new("RGBA", img.size, (0, 0, 0, 0))
     vd = ImageDraw.Draw(vig)
-    vd.rectangle([0, 0, img.width, img.height], fill=(40, 20, 10, 40))
+    vd.rectangle([0, 0, img.width, img.height], fill=(44, 20, 34, 40))
     mask = Image.new("L", img.size, 0)
     md = ImageDraw.Draw(mask)
     md.ellipse([-img.width * 0.25, -img.height * 0.2, img.width * 1.25, img.height * 1.2], fill=255)
@@ -270,15 +273,15 @@ def make_button(rel, kind):
     if kind == "btn_close":
         w, h = 96, 96
     if kind == "btn_primary":
-        fill, border = LIME, mix(LIME, (0, 0, 0), 0.16)
+        fill, border = STRAWBERRY, mix(STRAWBERRY, (0, 0, 0), 0.16)  # 主按钮 = 主色莓粉
     elif kind == "btn_secondary":
         fill, border = WHITE, EDGE
     elif kind == "btn_ghost":
-        fill, border = (255, 247, 236), (226, 208, 186)
+        fill, border = (255, 244, 250), (238, 214, 228)
     elif kind == "btn_icon":
         fill, border = WHITE, EDGE
     else:
-        fill, border = (255, 236, 236), (240, 200, 196)
+        fill, border = (255, 240, 246), (242, 204, 220)
     r = 20 if kind not in ("btn_icon", "btn_close") else min(w, h) // 2
     make_panel(rel, w, h, r, fill, border, shadow=(kind == "btn_primary"))
 
@@ -290,7 +293,7 @@ def make_bar(rel, kind):
     if kind == "bar_track":
         paste_rounded(img, [2 * S, 2 * S, (w - 2) * S, (h - 2) * S], (h // 2 - 2) * S, rgba(EDGE))
     else:
-        paste_rounded(img, [2 * S, 2 * S, (w - 2) * S, (h - 2) * S], (h // 2 - 2) * S, rgba(LIME))
+        paste_rounded(img, [2 * S, 2 * S, (w - 2) * S, (h - 2) * S], (h // 2 - 2) * S, rgba(STRAWBERRY))
         paste_rounded(img, [4 * S, 4 * S, (w - 4) * S, (h // 2 + 1) * S], (h // 2 - 4) * S, rgba(WHITE, 70))
     save(img, rel)
 
@@ -324,7 +327,7 @@ def make_icon(rel, symbol, color, second=None):
             ang = -math.pi / 2 + i * math.pi / 5
             r = S * (0.4 if i % 2 == 0 else 0.18)
             pts.append((c + math.cos(ang) * r, c + math.sin(ang) * r))
-        d.polygon(pts, fill=rgba((238, 226, 210)), outline=rgba((214, 196, 175)), width=lw)
+        d.polygon(pts, fill=rgba((240, 228, 238)), outline=rgba((220, 202, 220)), width=lw)
     elif symbol == "lock":
         rr([S * 0.2, S * 0.44, S * 0.8, S * 0.86], S * 0.08, rgba(mix(color, WHITE, 0.2)))
         d.arc([S * 0.3, S * 0.14, S * 0.7, S * 0.6], 180, 360, fill=rgba(color), width=lw)
@@ -522,7 +525,7 @@ def make_logo():
 
 def make_share_card():
     w, h = 500, 400
-    img = vertical_gradient(w * SS, h * SS, CREAM, (255, 226, 232))
+    img = vertical_gradient(w * SS, h * SS, CREAM, (255, 224, 240))
     d = ImageDraw.Draw(img)
     for i in range(12):
         x = random.Random(i).randint(0, w) * SS
@@ -538,7 +541,7 @@ def make_placeholder():
     S = size * SS
     img = new_canvas(size, size)
     d = ImageDraw.Draw(img)
-    paste_rounded(img, [6 * SS, 6 * SS, (size - 6) * SS, (size - 6) * SS], 12 * SS, rgba((236, 226, 214)))
+    paste_rounded(img, [6 * SS, 6 * SS, (size - 6) * SS, (size - 6) * SS], 12 * SS, rgba((240, 228, 238)))
     d.line([16 * SS, 16 * SS, 48 * SS, 48 * SS], fill=rgba(INK_SOFT), width=4 * SS)
     d.line([48 * SS, 16 * SS, 16 * SS, 48 * SS], fill=rgba(INK_SOFT), width=4 * SS)
     save(img, "art/ui/placeholder.png")
@@ -549,16 +552,16 @@ def main():
     ensure(ART)
 
     # 9 背景
-    make_background("art/bg/bg_home.jpg", (255, 250, 240), (255, 228, 214), STRAWBERRY, 1)
+    make_background("art/bg/bg_home.jpg", (255, 246, 250), (243, 220, 240), STRAWBERRY, 1)
     for ch, (top, mid, accent) in CHAPTER_THEMES.items():
         make_background(f"art/bg/bg_ch{ch}.jpg", top, mid, accent, 10 + ch)
-    make_background("art/bg/bg_daily.jpg", (245, 250, 255), (214, 236, 250), SODA, 21)
-    make_background("art/bg/bg_result.jpg", (255, 248, 236), (255, 224, 196), GOLD, 22)
+    make_background("art/bg/bg_daily.jpg", (250, 246, 255), (226, 222, 250), GRAPE, 21)
+    make_background("art/bg/bg_result.jpg", (255, 248, 244), (255, 224, 234), STRAWBERRY, 22)
 
     # 3 棋盘
-    make_panel("art/board/board_tray.png", 620, 992, 26, (255, 243, 226, 255), (233, 209, 178, 255))
+    make_panel("art/board/board_tray.png", 620, 992, 26, (255, 246, 250, 255), (240, 214, 228, 255))
     make_panel("art/board/board_frame.png", 640, 1012, 30, (255, 255, 255, 0), GOLD, shadow=False, gold=True)
-    make_panel("art/board/cell.png", 96, 96, 16, (247, 233, 213, 255), (238, 220, 198, 255), shadow=False)
+    make_panel("art/board/cell.png", 96, 96, 16, (250, 236, 244, 255), (242, 224, 234, 255), shadow=False)
 
     # 7 方块
     for i, col in enumerate(PALETTE):
@@ -571,9 +574,9 @@ def main():
         make_special(f"art/special/{kind}.png", kind, col)
 
     # 12 面板/按钮/条
-    make_panel("art/ui/panel_card.png", 256, 256, 24, (255, 255, 255, 240), (240, 220, 196, 255))
-    make_panel("art/ui/panel_popup.png", 384, 384, 32, (255, 255, 255, 248), (240, 220, 196, 255))
-    make_panel("art/ui/panel_strip.png", 256, 96, 20, (59, 42, 31, 228), (59, 42, 31, 228), shadow=False)
+    make_panel("art/ui/panel_card.png", 256, 256, 24, (255, 255, 255, 240), (244, 214, 230, 255))
+    make_panel("art/ui/panel_popup.png", 384, 384, 32, (255, 255, 255, 248), (244, 214, 230, 255))
+    make_panel("art/ui/panel_strip.png", 256, 96, 20, (74, 48, 62, 228), (74, 48, 62, 228), shadow=False)
     for kind in ["btn_primary", "btn_secondary", "btn_ghost", "btn_icon", "btn_close"]:
         make_button(f"art/ui/{kind}.png", kind)
     make_bar("art/ui/bar_track.png", "track")
