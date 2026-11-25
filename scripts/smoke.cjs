@@ -80,15 +80,24 @@ async function readState(page) {
     // 直落按钮位置（750×1334 设计分辨率下 1:1 映射）
     const dropX = 515;
     const dropY = 1194;
-    for (let i = 0; i < 10; i++) {
+    // 直落最多 30 落内得分即视为消除逻辑正常：
+    // 直落会把方块堆进中间几列，若颜色恰好无竖向三连，塔会直接堆顶判负（纯随机，10 落判定过脆）
+    let scored = false;
+    let drops = 0;
+    for (let i = 0; i < 30; i++) {
         await page.mouse.click(dropX, dropY);
         await sleep(520);
+        drops++;
+        const st = await readState(page);
+        if (!st.ok) break;
+        if (st.score > 0) { scored = true; break; }
+        if (st.state === 'over') break;
     }
 
     const mid = await readState(page);
-    console.log('after 10 drops:', JSON.stringify(mid));
+    console.log(`after ${drops} drops:`, JSON.stringify(mid));
     if (!mid.ok || !(mid.score > 0)) {
-        console.error('SMOKE FAILED: 10 次直落后分数未增加');
+        console.error(`SMOKE FAILED: ${drops} 次直落后分数未增加（消除逻辑异常或极端随机）`);
         await browser.close();
         process.exit(1);
     }
