@@ -686,7 +686,7 @@ export class GameController extends Component {
                 subtitle: '休息一下，随时回来继续',
                 buttons: [
                     { text: '继续游戏', kind: 'primary', onClick: () => { UIManager.instance?.close('dialog'); this.resume(); } },
-                    { text: '重新开始', kind: 'secondary', onClick: () => { UIManager.instance?.close('dialog'); void this.startRun(this._config); } },
+                    { text: '返回首页', kind: 'secondary', onClick: () => { UIManager.instance?.close('dialog'); nav.toHome(); } },
                 ],
             });
         })();

@@ -7,6 +7,7 @@ import { rotationCells } from '../core/PieceSource';
 import { simulateLock } from '../core/Simulator';
 import { TUNING } from '../config/GameTuning';
 import { Logger } from '../utils/Logger';
+import { nav } from '../app/Navigator';
 import type { SpriteFrame } from 'cc';
 
 export class ReplayController {
@@ -99,8 +100,9 @@ export class ReplayController {
         void this._render(this._index + 1);
     }
 
+    /** 关闭回放：回放是 panel 层（互斥已关闭主界面），必须显式回主界面，避免黑屏。 */
     close(): void {
-        this.view.close();
+        nav.toHome();
     }
 
     /** 确定性校验（验收用） */
