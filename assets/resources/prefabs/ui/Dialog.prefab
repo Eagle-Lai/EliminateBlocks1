@@ -265,7 +265,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 224,
+      "y": 286,
       "z": 0
     },
     "_lrot": {
@@ -328,9 +328,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "GAME OVER",
@@ -400,7 +400,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 178,
+      "y": 235,
       "z": 0
     },
     "_lrot": {
@@ -463,18 +463,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "堆到顶了",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 36,
-    "_fontSize": 36,
+    "_fontSize": 34,
     "_fontFamily": "Arial",
-    "_lineHeight": 45,
+    "_lineHeight": 43,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -535,7 +535,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 102,
+      "y": 140,
       "z": 0
     },
     "_lrot": {
@@ -598,8 +598,8 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 78,
-      "g": 203,
+      "r": 255,
+      "g": 92,
       "b": 138,
       "a": 255
     },
@@ -670,7 +670,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 28,
+      "y": 54,
       "z": 0
     },
     "_lrot": {
@@ -733,9 +733,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "",
@@ -818,7 +818,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": -50,
+      "y": -22,
       "z": 0
     },
     "_lrot": {
@@ -1263,7 +1263,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": -140,
+      "y": -130,
       "z": 0
     },
     "_lrot": {
@@ -1375,8 +1375,8 @@
     "_color": {
       "__type__": "cc.Color",
       "r": 255,
-      "g": 252,
-      "b": 245,
+      "g": 250,
+      "b": 253,
       "a": 255
     },
     "_string": "再来一局",
@@ -1437,7 +1437,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 500,
-      "height": 92
+      "height": 88
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -1646,9 +1646,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "返回首页",
@@ -1709,7 +1709,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 500,
-      "height": 70
+      "height": 72
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -1791,7 +1791,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 600,
-      "height": 560
+      "height": 640
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",

@@ -2,6 +2,7 @@
 import { _decorator, Node, Sprite, UITransform, Vec3, tween } from 'cc';
 import { UIView } from '../ui/UIView';
 import { setActive } from './ViewUtils';
+import { TUNING } from '../config/GameTuning';
 
 const { ccclass, property } = _decorator;
 
@@ -29,7 +30,7 @@ export class ShadowBarView extends UIView {
 
     setProgress(current: number, shadow: number): void {
         const ut = this.track ? this.track.node.getComponent(UITransform) : null;
-        const width = ut ? ut.width : 400;
+        const width = ut ? ut.width : TUNING.ui.shadowBarFallbackW;
         const cx = -width / 2 + Math.max(0, Math.min(1, current)) * width;
         const sx = -width / 2 + Math.max(0, Math.min(1, shadow)) * width;
         if (this.current) this.current.setPosition(cx, 0, 0);

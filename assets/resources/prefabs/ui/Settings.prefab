@@ -259,7 +259,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 180,
+      "y": 222,
       "z": 0
     },
     "_lrot": {
@@ -322,9 +322,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "设置",
@@ -401,7 +401,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 60,
+      "y": 120,
       "z": 0
     },
     "_lrot": {
@@ -512,18 +512,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "音效：开",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 26,
-    "_fontSize": 26,
+    "_fontSize": 24,
     "_fontFamily": "Arial",
-    "_lineHeight": 33,
+    "_lineHeight": 30,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -575,7 +575,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 420,
-      "height": 90
+      "height": 84
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -673,7 +673,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": -50,
+      "y": 10,
       "z": 0
     },
     "_lrot": {
@@ -784,9 +784,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "制作名单",
@@ -847,7 +847,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 420,
-      "height": 80
+      "height": 72
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -938,7 +938,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": -140,
+      "y": -80,
       "z": 0
     },
     "_lrot": {
@@ -1001,9 +1001,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "",
@@ -1080,7 +1080,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": -210,
+      "y": -196,
       "z": 0
     },
     "_lrot": {
@@ -1192,17 +1192,17 @@
     "_color": {
       "__type__": "cc.Color",
       "r": 255,
-      "g": 252,
-      "b": 245,
+      "g": 250,
+      "b": 253,
       "a": 255
     },
     "_string": "返回",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 26,
-    "_fontSize": 26,
+    "_fontSize": 30,
     "_fontFamily": "Arial",
-    "_lineHeight": 33,
+    "_lineHeight": 38,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -1336,7 +1336,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 600,
-      "height": 480
+      "height": 560
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",

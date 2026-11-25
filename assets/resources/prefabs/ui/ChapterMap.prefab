@@ -273,9 +273,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "关卡地图",
@@ -408,9 +408,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "本章 0/20",
@@ -786,18 +786,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "糖霜庭院",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 14,
-    "_fontSize": 14,
+    "_fontSize": 16,
     "_fontFamily": "Arial",
-    "_lineHeight": 18,
+    "_lineHeight": 20,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -921,9 +921,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "0/60 ★",
@@ -1448,18 +1448,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "糖霜庭院",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 14,
-    "_fontSize": 14,
+    "_fontSize": 16,
     "_fontFamily": "Arial",
-    "_lineHeight": 18,
+    "_lineHeight": 20,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -1583,9 +1583,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "0/60 ★",
@@ -2110,18 +2110,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "糖霜庭院",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 14,
-    "_fontSize": 14,
+    "_fontSize": 16,
     "_fontFamily": "Arial",
-    "_lineHeight": 18,
+    "_lineHeight": 20,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -2245,9 +2245,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "0/60 ★",
@@ -2772,18 +2772,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "糖霜庭院",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 14,
-    "_fontSize": 14,
+    "_fontSize": 16,
     "_fontFamily": "Arial",
-    "_lineHeight": 18,
+    "_lineHeight": 20,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -2907,9 +2907,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "0/60 ★",
@@ -3434,18 +3434,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "糖霜庭院",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 14,
-    "_fontSize": 14,
+    "_fontSize": 16,
     "_fontFamily": "Arial",
-    "_lineHeight": 18,
+    "_lineHeight": 20,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -3569,9 +3569,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "0/60 ★",
@@ -4096,18 +4096,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "糖霜庭院",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 14,
-    "_fontSize": 14,
+    "_fontSize": 16,
     "_fontFamily": "Arial",
-    "_lineHeight": 18,
+    "_lineHeight": 20,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -4231,9 +4231,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "0/60 ★",
@@ -4793,18 +4793,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "返回",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 26,
-    "_fontSize": 26,
+    "_fontSize": 24,
     "_fontFamily": "Arial",
-    "_lineHeight": 33,
+    "_lineHeight": 30,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -4856,7 +4856,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 160,
-      "height": 80
+      "height": 72
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",

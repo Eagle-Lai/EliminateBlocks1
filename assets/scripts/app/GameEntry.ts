@@ -267,8 +267,20 @@ export class GameEntry extends Component {
         return view;
     }
 
+    /** 资源分包加载：失败给用户明确反馈（此前是未处理 rejection，界面无响应感）。 */
+    private async _loadBundleSafe(bundle: string): Promise<boolean> {
+        try {
+            await assets.loadBundle(bundle);
+            return true;
+        } catch (err) {
+            Logger.error('GameEntry', `分包加载失败：${bundle}`, err);
+            await UIManager.instance?.toast('资源加载失败，请重试');
+            return false;
+        }
+    }
+
     private async _startEndless(): Promise<void> {
-        await assets.loadBundle('ch1');
+        if (!(await this._loadBundleSafe('ch1'))) return;
         const view = await this._openGameScreen();
         if (!view || !this._layout) return;
         const controller = view.node.getComponent(GameController);
@@ -289,7 +301,7 @@ export class GameEntry extends Component {
     private async _startLevel(id: number): Promise<void> {
         const level = LEVELS.find((l) => l.id === id);
         if (!level) return;
-        await assets.loadBundle(`ch${level.chapter}`);
+        if (!(await this._loadBundleSafe(`ch${level.chapter}`))) return;
         const view = await this._openGameScreen();
         if (!view || !this._layout) return;
         const controller = view.node.getComponent(GameController);
@@ -311,7 +323,7 @@ export class GameEntry extends Component {
             await UIManager.instance?.toast('题目加载失败，请重试');
             return;
         }
-        await assets.loadBundle('daily');
+        if (!(await this._loadBundleSafe('daily'))) return;
         const view = await this._openGameScreen();
         if (!view || !this._layout) return;
         const controller = view.node.getComponent(GameController);

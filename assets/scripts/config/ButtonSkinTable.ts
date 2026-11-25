@@ -1,6 +1,7 @@
 /** 按钮皮肤表：4 种常态皮 + 关闭按钮；按下/禁用由 Sprite.color 派生，不额外出图。 */
 import { Color } from 'cc';
 import { ART } from './AssetKeys';
+import { THEME } from './ThemeConfig';
 
 export type ButtonKind = 'primary' | 'secondary' | 'ghost' | 'icon' | 'close' | 'tab';
 
@@ -12,12 +13,12 @@ export interface ButtonSkin {
 }
 
 export const BUTTON_SKINS: Record<ButtonKind, ButtonSkin> = {
-    primary: { frame: ART.ui.btnPrimary, textColor: new Color(255, 252, 245, 255), sliced: true },
-    secondary: { frame: ART.ui.btnSecondary, textColor: new Color(59, 42, 31, 255), sliced: true },
-    ghost: { frame: ART.ui.btnGhost, textColor: new Color(139, 115, 85, 255), sliced: true },
-    icon: { frame: ART.ui.btnIcon, textColor: new Color(59, 42, 31, 255), sliced: false },
-    close: { frame: ART.ui.btnClose, textColor: new Color(59, 42, 31, 255), sliced: false },
-    tab: { frame: ART.ui.btnSecondary, textColor: new Color(139, 115, 85, 255), sliced: true },
+    primary: { frame: ART.ui.btnPrimary, textColor: THEME.textOnDark, sliced: true },
+    secondary: { frame: ART.ui.btnSecondary, textColor: THEME.textPrimary, sliced: true },
+    ghost: { frame: ART.ui.btnGhost, textColor: THEME.textSecondary, sliced: true },
+    icon: { frame: ART.ui.btnIcon, textColor: THEME.textPrimary, sliced: false },
+    close: { frame: ART.ui.btnClose, textColor: THEME.textPrimary, sliced: false },
+    tab: { frame: ART.ui.btnSecondary, textColor: THEME.textSecondary, sliced: true },
 };
 
 export const BUTTON_FRAME_PATHS: readonly string[] = [

@@ -137,7 +137,7 @@ export class PieceView extends Component {
                 );
                 const color = THEME.blockColors[piece.color] ?? THEME.blockColors[0];
                 if (ghost.base) ghost.base.color = new Color(color.r, color.g, color.b, 45);
-                if (ghost.extra) ghost.extra.color = new Color(255, 196, 64, 210);
+                if (ghost.extra) ghost.extra.color = THEME.accentSoft;
             }
         }
     }

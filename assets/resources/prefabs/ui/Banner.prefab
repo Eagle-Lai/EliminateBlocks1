@@ -202,17 +202,17 @@
     "_color": {
       "__type__": "cc.Color",
       "r": 255,
-      "g": 209,
-      "b": 102,
+      "g": 196,
+      "b": 64,
       "a": 255
     },
     "_string": "连锁 x2",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 26,
-    "_fontSize": 26,
+    "_fontSize": 24,
     "_fontFamily": "Arial",
-    "_lineHeight": 33,
+    "_lineHeight": 30,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {

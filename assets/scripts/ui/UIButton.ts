@@ -16,8 +16,9 @@ import {
     Vec3,
     tween,
 } from 'cc';
-import { BUTTON_SKINS, DISABLED_COLOR, PRESSED_COLOR, type ButtonKind } from '../config/ButtonSkinTable';
+import { BUTTON_SKINS, PRESSED_COLOR, type ButtonKind } from '../config/ButtonSkinTable';
 import { TUNING } from '../config/GameTuning';
+import { THEME } from '../config/ThemeConfig';
 import { assets } from '../service/AssetService';
 import { audio } from '../service/AudioService';
 
@@ -102,7 +103,7 @@ export class UIButton extends Component {
 
     setSelected(value: boolean): void {
         this._selected = value;
-        if (this.bg) this.bg.color = value ? new Color(255, 245, 214, 255) : this._baseColor;
+        if (this.bg) this.bg.color = value ? THEME.selected : this._baseColor;
     }
 
     private _down(_e: EventTouch): void {
@@ -137,7 +138,7 @@ export class UIButton extends Component {
     private _restore(): void {
         this._pressed = false;
         this.unscheduleAllCallbacks();
-        if (this.bg) this.bg.color = this._selected ? new Color(255, 245, 214, 255) : this._baseColor;
+        if (this.bg) this.bg.color = this._selected ? THEME.selected : this._baseColor;
         Tween.stopAllByTarget(this.node);
         tween(this.node).to(0.06, { scale: new Vec3(1, 1, 1) }).start();
     }

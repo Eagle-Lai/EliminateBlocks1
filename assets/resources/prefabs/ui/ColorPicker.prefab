@@ -316,18 +316,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "选择颜色",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 30,
-    "_fontSize": 30,
+    "_fontSize": 34,
     "_fontFamily": "Arial",
-    "_lineHeight": 38,
+    "_lineHeight": 43,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -1269,9 +1269,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "取消",

@@ -13,6 +13,7 @@ import { ShadowBarView } from './ShadowBarView';
 import { BannerView } from './BannerView';
 import { FloatTextView } from './FloatTextView';
 import { MutationBadgeView } from './MutationBadgeView';
+import { TUNING } from '../config/GameTuning';
 import type { LayoutInfo } from '../ui/LayoutAdapter';
 
 const { ccclass, property } = _decorator;
@@ -60,13 +61,13 @@ export class GameScreenView extends UIView {
             const ut = this.sugarRail.node.getComponent(UITransform);
             if (ut) ut.setContentSize(this.sugarRail.node.getComponent(UITransform)?.width ?? 56, layout.boardH);
             this.sugarRail.node.setPosition(
-                layout.boardW / 2 + 34,
+                layout.boardW / 2 + TUNING.ui.railGap,
                 layout.boardCenterY,
                 0,
             );
         }
         if (this.shadowBar) {
-            this.shadowBar.node.setPosition(0, layout.boardCenterY + layout.boardH / 2 + 10, 0);
+            this.shadowBar.node.setPosition(0, layout.boardCenterY + layout.boardH / 2 + TUNING.ui.shadowGap, 0);
         }
     }
 

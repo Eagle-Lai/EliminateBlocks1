@@ -279,18 +279,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "最佳局回放",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 30,
-    "_fontSize": 30,
+    "_fontSize": 34,
     "_fontFamily": "Arial",
-    "_lineHeight": 38,
+    "_lineHeight": 43,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -1019,9 +1019,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "0",
@@ -1154,9 +1154,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "0 锁",
@@ -1454,17 +1454,17 @@
     "_color": {
       "__type__": "cc.Color",
       "r": 255,
-      "g": 252,
-      "b": 245,
+      "g": 250,
+      "b": 253,
       "a": 255
     },
     "_string": "播放",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 26,
-    "_fontSize": 26,
+    "_fontSize": 30,
     "_fontFamily": "Arial",
-    "_lineHeight": 33,
+    "_lineHeight": 38,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -1725,18 +1725,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "1×",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 22,
-    "_fontSize": 22,
+    "_fontSize": 24,
     "_fontFamily": "Arial",
-    "_lineHeight": 28,
+    "_lineHeight": 30,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -1788,7 +1788,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 110,
-      "height": 64
+      "height": 72
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -1997,9 +1997,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "关闭",
@@ -2060,7 +2060,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 160,
-      "height": 70
+      "height": 72
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",

@@ -1,9 +1,10 @@
 /** 横幅：同色 xN / 连锁 xN / 整行 / LEVEL UP（排队，最多 3 条）。 */
-import { _decorator, Color, Label, Node, Sprite, UIOpacity, Vec3, tween } from 'cc';
+import { _decorator, Label, Node, Sprite, UIOpacity, Vec3, tween } from 'cc';
 import { UIView } from '../ui/UIView';
 import { setLabel } from './ViewUtils';
 import { playClip } from '../utils/Anim';
 import { TUNING } from '../config/GameTuning';
+import { THEME } from '../config/ThemeConfig';
 
 const { ccclass, property } = _decorator;
 
@@ -41,10 +42,10 @@ export class BannerView extends UIView {
         if (this.bg) {
             this.bg.color =
                 item.kind === 'level'
-                    ? new Color(78, 203, 138, 235)
+                    ? THEME.bannerLevel
                     : item.kind === 'row'
-                      ? new Color(74, 157, 240, 235)
-                      : new Color(59, 42, 31, 232);
+                      ? THEME.bannerRow
+                      : THEME.bannerCombo;
         }
         if (!this.panel) return;
 

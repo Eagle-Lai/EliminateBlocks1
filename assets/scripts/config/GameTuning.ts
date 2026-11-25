@@ -75,6 +75,17 @@ export const TUNING = {
         radiusButton: 24,
         /** 糖能轨宽度（贴在棋盘右侧） */
         railWidth: 56,
+        /** 糖能轨与棋盘右缘的间距 */
+        railGap: 34,
+        /** 影子条与棋盘上缘的间距 */
+        shadowGap: 10,
+        /** HUD 下一块预览：单格上限与基准包围盒 */
+        nextCellMax: 22,
+        nextCellBaseline: 84,
+        /** HUD 下一块预览纵向微调 */
+        nextCellShiftY: 6,
+        /** 影子条宽度读取失败时的兜底值（= Prefab 轨宽） */
+        shadowBarFallbackW: 620,
         /** 影子条高度 */
         shadowBarHeight: 6,
     },

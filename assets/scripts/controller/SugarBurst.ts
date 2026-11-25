@@ -6,6 +6,7 @@ import { UIOpacity, Vec3, tween } from 'cc';
 import { applyBurst } from '../core/Simulator';
 import { SugarEnergy } from '../core/SugarEnergy';
 import { TUNING } from '../config/GameTuning';
+import { THEME } from '../config/ThemeConfig';
 import { wait } from '../utils/Anim';
 import { audio } from '../service/AudioService';
 import { haptic } from '../service/HapticService';
@@ -52,7 +53,7 @@ export class SugarBurst {
         this.view.hud?.setProgress(0);
         if (host) {
             const pos = this.view.board?.cellToLocal(Math.floor(this.model.rows / 2), Math.floor(this.model.cols / 2));
-            this.view.floats?.spawn(`+${bonus}`, pos ?? new Vec3(0, 0, 0), { r: 255, g: 196, b: 64, a: 255 } as never);
+            this.view.floats?.spawn(`+${bonus}`, pos ?? new Vec3(0, 0, 0), THEME.accent);
         }
         run.goal?.onBurst(1);
         run.goal?.syncScore(this.score.score);

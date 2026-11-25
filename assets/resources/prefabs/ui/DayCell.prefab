@@ -270,9 +270,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "1",
@@ -405,9 +405,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 139,
-      "g": 115,
-      "b": 85,
+      "r": 154,
+      "g": 116,
+      "b": 136,
       "a": 255
     },
     "_string": "完成",

@@ -58,7 +58,9 @@ export class DailyPanelView extends UIView {
         setLabel(this.monthLabel, `${month} 月`);
         setLabel(
             this.goalLabel,
-            entry ? `${entry.goalType === 'score' ? '得分' : entry.goalType === 'rows' ? '消行' : entry.goalType === 'color' ? '清色' : '清石'} ${entry.target}` : '',
+            entry
+                ? `${entry.goalType === 'score' ? '得分' : entry.goalType === 'rows' ? '消行' : entry.goalType === 'color' ? '清色' : '清石'} ${entry.target}`
+                : '暂无当日题目',
         );
 
         // 只为本月建格子（≤31 个），不再一次铺 365 个
@@ -87,7 +89,10 @@ export class DailyPanelView extends UIView {
 
     private _refreshStatus(): void {
         const entry = indexForDay(this._selected);
-        if (!entry) return;
+        if (!entry) {
+            setLabel(this.statusLabel, '暂无该日题目，请选择其他日期');
+            return;
+        }
         setLabel(
             this.statusLabel,
             `${entry.month}/${entry.day} · ${entry.difficulty} · 目标 ${entry.target}`,

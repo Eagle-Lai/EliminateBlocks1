@@ -264,9 +264,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "选择一项天赋",
@@ -556,18 +556,18 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 59,
-      "g": 42,
-      "b": 31,
+      "r": 74,
+      "g": 48,
+      "b": 62,
       "a": 255
     },
     "_string": "跳过 +15",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 26,
-    "_fontSize": 26,
+    "_fontSize": 24,
     "_fontFamily": "Arial",
-    "_lineHeight": 33,
+    "_lineHeight": 30,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -619,7 +619,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 300,
-      "height": 80
+      "height": 72
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",

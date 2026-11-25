@@ -6,6 +6,7 @@ import { _decorator, Label, Node, Sprite, SpriteFrame, Vec3, tween } from 'cc';
 import { UIView } from '../ui/UIView';
 import { UIButton } from '../ui/UIButton';
 import { setLabel, setActive, setSize, fmt } from './ViewUtils';
+import { TUNING } from '../config/GameTuning';
 import type { PieceModel } from '../core/PieceModel';
 
 const { ccclass, property } = _decorator;
@@ -107,7 +108,7 @@ export class HudView extends UIView {
         }
         const cols = maxC + 1;
         const rows = maxR + 1;
-        const cellSize = Math.min(22, 84 / Math.max(cols, rows));
+        const cellSize = Math.min(TUNING.ui.nextCellMax, TUNING.ui.nextCellBaseline / Math.max(cols, rows));
         const totalW = cols * cellSize;
         const totalH = rows * cellSize;
 
@@ -119,7 +120,7 @@ export class HudView extends UIView {
             setSize(sprite.node, cellSize * 0.94, cellSize * 0.94);
             sprite.node.setPosition(
                 -totalW / 2 + (cell.c + 0.5) * cellSize,
-                totalH / 2 - (cell.r + 0.5) * cellSize - 6,
+                totalH / 2 - (cell.r + 0.5) * cellSize - TUNING.ui.nextCellShiftY,
                 0,
             );
             sprite.spriteFrame = frames[piece.color] ?? null;
