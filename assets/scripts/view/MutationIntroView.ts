@@ -8,6 +8,7 @@ import { ART } from '../config/AssetKeys';
 import { setLabel } from './ViewUtils';
 import { TUNING } from '../config/GameTuning';
 import { playClip } from '../utils/Anim';
+import { popArt } from './UIMotion';
 
 const { ccclass, property } = _decorator;
 
@@ -39,15 +40,22 @@ export class MutationIntroView extends UIView {
         this._done = false;
         if (def) {
             setLabel(this.nameLabel, def.name);
-            setLabel(this.ruleLabel, def.desc);
+            setLabel(this.ruleLabel, def.desc.replace('{间隔}', String(def.tiers[tier].every)));
             setLabel(this.tierLabel, `${TIER_NAME[tier]}档`);
             assets.loadSpriteFrame(ART.icon(def.icon)).then((sf) => {
                 if (this.icon && this.icon.isValid) this.icon.spriteFrame = sf;
             });
         }
         this.node.active = true;
+        if (this.icon) {
+            const emblem = this.icon.node;
+            emblem.setScale(0.7, 0.7, 1);
+            tween(emblem).to(0.35, { scale: new Vec3(1.12, 1.12, 1) }, { easing: 'backOut' })
+                .to(0.45, { scale: new Vec3(1, 1, 1) }).start();
+        }
         const card = this.node.getChildByName('Card');
         if (card) {
+            popArt(card.getChildByPath('Panorama/EmblemHalo'), 0.13, 0.36);
             const op = card.getComponent(UIOpacity) || card.addComponent(UIOpacity);
             op.opacity = 0;
             tween(op).to(0.16, { opacity: 255 }).start();
@@ -70,5 +78,10 @@ export class MutationIntroView extends UIView {
         const resolve = this._resolve;
         this._resolve = null;
         resolve?.();
+    }
+
+    onClose(): void {
+        this.unscheduleAllCallbacks();
+        this.dismiss();
     }
 }

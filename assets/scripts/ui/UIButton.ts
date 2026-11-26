@@ -1,6 +1,7 @@
 /**
  * 统一按钮组件：绑定 Prefab 里的 Sprite + Label（不再用 Graphics 画）。
- * 三态（常态/按下/禁用）由 Sprite.color 派生；可选选中态；点击冷却；长按连发。
+ * 四态：常态 / 按下（压暗 + 下沉缩放，松手回弹）/ 禁用（灰化半透明）/ 选中（换 selectedFrame）；
+ * 点击冷却；长按连发。文字颜色/描边/唇边偏移全部来自 ButtonSkinTable。
  */
 import {
     _decorator,
@@ -16,11 +17,12 @@ import {
     Vec3,
     tween,
 } from 'cc';
-import { BUTTON_SKINS, PRESSED_COLOR, type ButtonKind } from '../config/ButtonSkinTable';
+import { BUTTON_SKINS, DISABLED_COLOR, PRESSED_COLOR, type ButtonKind } from '../config/ButtonSkinTable';
 import { TUNING } from '../config/GameTuning';
 import { THEME } from '../config/ThemeConfig';
 import { assets } from '../service/AssetService';
 import { audio } from '../service/AudioService';
+import { UIManager } from './UIManager';
 
 const { ccclass, property } = _decorator;
 
@@ -60,16 +62,57 @@ export class UIButton extends Component {
 
     /** 皮肤来自 ButtonSkinTable；按下/禁用只改颜色 */
     applySkin(): void {
-        const kind = (this.skin || 'primary') as ButtonKind;
-        const skin = BUTTON_SKINS[kind] ?? BUTTON_SKINS.primary;
-        if (this.label) this.label.color = skin.textColor;
+        const skin = this._skin();
+        if (this.label) {
+            this.label.color = skin.textColor;
+            const outline = skin.outline;
+            this.label.enableOutline = !!outline;
+            if (outline) {
+                this.label.outlineColor = outline.color;
+                this.label.outlineWidth = outline.width;
+            }
+            // 立体按钮底部有唇边：文字（直接子节点）上移，保证视觉居中
+            if (this.label.node.parent === this.node) {
+                const p = this.label.node.position;
+                this.label.node.setPosition(p.x, skin.lipOffset ?? 0, p.z);
+            }
+        }
+        if (this.iconNode && this.iconNode.parent === this.node) {
+            const p = this.iconNode.position;
+            this.iconNode.setPosition(p.x, skin.lipOffset ?? 0, p.z);
+        }
         if (this.bg) {
             this.bg.type = skin.sliced ? Sprite.Type.SLICED : Sprite.Type.SIMPLE;
             this.bg.sizeMode = Sprite.SizeMode.CUSTOM;
-            assets.loadSpriteFrame(skin.frame).then((sf: SpriteFrame | null) => {
-                if (sf && this.bg) this.bg.spriteFrame = sf;
-            });
+            this._applyFrame();
         }
+    }
+
+    private _skin() {
+        const kind = (this.skin || 'primary') as ButtonKind;
+        return BUTTON_SKINS[kind] ?? BUTTON_SKINS.primary;
+    }
+
+    /** 常态/选中两套底图；异步加载完成时以最新状态为准 */
+    private _applyFrame(): void {
+        const skin = this._skin();
+        const path = this._selected && skin.selectedFrame ? skin.selectedFrame : skin.frame;
+        const cached = assets.getFrame(path);
+        if (cached && this.bg) {
+            this.bg.spriteFrame = cached;
+            return;
+        }
+        assets.loadSpriteFrame(path).then((sf: SpriteFrame | null) => {
+            const now = this._skin();
+            const want = this._selected && now.selectedFrame ? now.selectedFrame : now.frame;
+            if (sf && this.bg && this.bg.isValid && want === path) this.bg.spriteFrame = sf;
+        });
+    }
+
+    private _restColor(): Color {
+        if (!this._interactable) return DISABLED_COLOR;
+        if (this._selected && !this._skin().selectedFrame) return THEME.selected;
+        return this._baseColor;
     }
 
     setKind(kind: ButtonKind): void {
@@ -93,8 +136,9 @@ export class UIButton extends Component {
     setInteractable(value: boolean): void {
         this._interactable = value;
         const op = this.node.getComponent(UIOpacity) || this.node.addComponent(UIOpacity);
-        op.opacity = value ? 255 : 130;
+        op.opacity = value ? 255 : 150;
         if (!value) this._restore();
+        else if (this.bg) this.bg.color = this._restColor();
     }
 
     get interactable(): boolean {
@@ -103,15 +147,19 @@ export class UIButton extends Component {
 
     setSelected(value: boolean): void {
         this._selected = value;
-        if (this.bg) this.bg.color = value ? THEME.selected : this._baseColor;
+        if (this.bg) {
+            this.bg.color = this._restColor();
+            if (this._skin().selectedFrame) this._applyFrame();
+        }
     }
 
-    private _down(_e: EventTouch): void {
+    private _down(e: EventTouch): void {
         if (!this._interactable) return;
+        UIManager.instance?.rippleAt(e.getUILocation());
         this._pressed = true;
         if (this.bg) this.bg.color = PRESSED_COLOR;
         Tween.stopAllByTarget(this.node);
-        tween(this.node).to(0.05, { scale: new Vec3(0.97, 0.97, 1) }).start();
+        tween(this.node).to(0.05, { scale: new Vec3(0.94, 0.94, 1) }, { easing: 'quadOut' }).start();
         this.onPressStart?.();
         if (this._hold) {
             this.unscheduleAllCallbacks();
@@ -136,11 +184,20 @@ export class UIButton extends Component {
     }
 
     private _restore(): void {
+        const wasPressed = this._pressed;
         this._pressed = false;
         this.unscheduleAllCallbacks();
-        if (this.bg) this.bg.color = this._selected ? THEME.selected : this._baseColor;
+        if (this.bg) this.bg.color = this._restColor();
         Tween.stopAllByTarget(this.node);
-        tween(this.node).to(0.06, { scale: new Vec3(1, 1, 1) }).start();
+        if (wasPressed) {
+            // 松手回弹：1.04 → 1（主流手游按钮的「果冻」反馈）
+            tween(this.node)
+                .to(0.07, { scale: new Vec3(1.04, 1.04, 1) }, { easing: 'quadOut' })
+                .to(0.1, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' })
+                .start();
+        } else {
+            this.node.setScale(1, 1, 1);
+        }
     }
 
     private _fire(): void {

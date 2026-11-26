@@ -10,6 +10,7 @@ import {
     Sprite,
     SpriteFrame,
     Tween,
+    UIOpacity,
     UITransform,
     Vec3,
     instantiate,
@@ -17,8 +18,10 @@ import {
 } from 'cc';
 import type { BlockData, BoardModel } from '../core/BoardModel';
 import type { Cell } from '../config/PieceShapeTable';
+import type { PieceModel } from '../core/PieceModel';
+import { THEME } from '../config/ThemeConfig';
 import { BlockView } from './BlockView';
-import { tweenNode } from '../utils/Anim';
+import { wait } from '../utils/Anim';
 import { assets } from '../service/AssetService';
 
 const { ccclass, property } = _decorator;
@@ -39,6 +42,8 @@ export class BoardView extends Component {
     @property(Node) fogLayer: Node | null = null;
     @property(Sprite) tray: Sprite | null = null;
     @property(Sprite) frame: Sprite | null = null;
+    @property(Node) dropTrail: Node | null = null;
+    @property(Node) rimCurrents: Node | null = null;
 
     private _cols = 10;
     private _rows = 16;
@@ -70,12 +75,16 @@ export class BoardView extends Component {
 
         if (this.tray) {
             const tu = this.tray.node.getComponent(UITransform);
-            if (tu) tu.setContentSize(this._boardW + 18, this._boardH + 18);
+            if (tu) tu.setContentSize(this._boardW + 20, this._boardH + 20);
         }
         if (this.frame) {
             const fu = this.frame.node.getComponent(UITransform);
-            if (fu) fu.setContentSize(this._boardW + 22, this._boardH + 22);
+            if (fu) fu.setContentSize(this._boardW + 24, this._boardH + 24);
         }
+        this.rimCurrents?.children.forEach((edge, i) => {
+            edge.setPosition((i === 0 ? -1 : 1) * (this._boardW / 2 + 5), 0, 0);
+            edge.getComponent(UITransform)?.setContentSize(20, this._boardH + 7);
+        });
 
         this._buildGrid();
         for (const view of this._views.values()) view.setCellSize(cell);
@@ -103,7 +112,7 @@ export class BoardView extends Component {
             const r = Math.floor(i / this._cols);
             const c = i % this._cols;
             const ui = node.getComponent(UITransform);
-            if (ui) ui.setContentSize(this._cell * 0.92, this._cell * 0.92);
+            if (ui) ui.setContentSize(this._cell, this._cell);
             node.setPosition(
                 -this._boardW / 2 + (c + 0.5) * this._cell,
                 this._boardH / 2 - (r + 0.5) * this._cell,
@@ -120,7 +129,7 @@ export class BoardView extends Component {
 
     async rebuild(model: BoardModel, animateMs = 0, opts: BoardViewOptions = {}): Promise<void> {
         const present = new Set<BlockData>();
-        const animations: Promise<void>[] = [];
+        let moved = false;
 
         for (let r = 0; r < model.rows; r++) {
             for (let c = 0; c < model.cols; c++) {
@@ -151,7 +160,8 @@ export class BoardView extends Component {
                         view.c = c;
                         if (animateMs > 0) {
                             Tween.stopAllByTarget(view.node);
-                            animations.push(tweenNode(view.node, animateMs, { position: new Vec3(x, y, 0) }, 'quadOut'));
+                            tween(view.node).to(animateMs / 1000, { position: new Vec3(x, y, 0) }, { easing: 'quadOut' }).start();
+                            moved = true;
                         } else {
                             view.node.setPosition(x, y, 0);
                         }
@@ -169,15 +179,15 @@ export class BoardView extends Component {
             this._applied.delete(block);
         }
 
-        this._refreshFog(model, opts);
-        await Promise.all(animations);
+        this.setFog(model, opts);
+        if (moved) await wait(animateMs);
     }
 
     private _keyOf(block: BlockData): string {
         return `${block.type}|${block.kind ?? ''}|${block.special ?? ''}`;
     }
 
-    private _refreshFog(model: BoardModel, opts: BoardViewOptions): void {
+    setFog(model: BoardModel, opts: BoardViewOptions): void {
         const fogRows = opts.fogRows ?? 0;
         const fogPrefab = this._prefab('game/FogCell', this.fogPrefab);
         if (!this.fogLayer || !fogPrefab || fogRows <= 0) {
@@ -237,7 +247,31 @@ export class BoardView extends Component {
         await Promise.all(tasks);
     }
 
+    showDropTrail(piece: PieceModel, targetY: number): void {
+        const trail = this.dropTrail;
+        if (!trail) return;
+        trail.active = true;
+        const opacity = trail.getComponent(UIOpacity)!;
+        Tween.stopAllByTarget(opacity);
+        opacity.opacity = 235;
+        trail.children.forEach((ray, column) => {
+            const rows = piece.cells.filter(cell => cell.c === column).map(cell => cell.r);
+            ray.active = rows.length > 0;
+            if (!ray.active) return;
+            const edge = (targetY > piece.y ? 1 : -1) * Math.max(...rows);
+            const startRow = Math.min(this._rows - 1, Math.max(0, piece.y + edge));
+            const endRow = Math.min(this._rows - 1, Math.max(0, targetY + edge));
+            const center = this.cellToLocal((startRow + endRow) / 2, piece.x + column);
+            ray.setPosition(center);
+            ray.getComponent(UITransform)!.setContentSize(this._cell * 0.44, (Math.abs(endRow - startRow) + 1) * this._cell);
+            ray.getComponent(Sprite)!.color = THEME.blockColors[piece.color];
+        });
+        tween(opacity).to(0.23, { opacity: 0 }, { easing: 'quadIn' })
+            .call(() => { trail.active = false; }).start();
+    }
+
     clearAll(): void {
+        if (this.dropTrail) this.dropTrail.active = false;
         for (const view of this._views.values()) this._release(view);
         this._views.clear();
         this._applied.clear();

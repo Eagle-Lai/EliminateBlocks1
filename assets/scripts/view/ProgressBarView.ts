@@ -1,5 +1,5 @@
 /** 进度条：Track + Fill（Sprite FILLED）+ 可选 Label。 */
-import { _decorator, Label, Sprite } from 'cc';
+import { _decorator, Label, Node, Sprite, UITransform } from 'cc';
 import { UIView } from '../ui/UIView';
 import { setLabel } from './ViewUtils';
 
@@ -10,6 +10,7 @@ export class ProgressBarView extends UIView {
     @property(Sprite) track: Sprite | null = null;
     @property(Sprite) fill: Sprite | null = null;
     @property(Label) label: Label | null = null;
+    @property(Node) light: Node | null = null;
 
     onOpen(): void {
         this.assertRefs([
@@ -23,7 +24,11 @@ export class ProgressBarView extends UIView {
     }
 
     setProgress(value: number, text?: string): void {
-        if (this.fill) this.fill.fillRange = Math.max(0, Math.min(1, value));
+        if (this.fill) {
+            this.fill.fillRange = Math.max(0, Math.min(1, value));
+            const width = this.fill.node.getComponent(UITransform)?.width ?? 0;
+            this.light?.setPosition(width * (this.fill.fillRange - 0.5), 0, 0);
+        }
         if (text !== undefined) setLabel(this.label, text);
     }
 }

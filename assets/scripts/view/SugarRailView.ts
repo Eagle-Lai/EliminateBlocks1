@@ -1,5 +1,5 @@
 /** 糖能轨：填充条 + 糖爆按钮 + 天赋点 + 撤销按钮。 */
-import { _decorator, Label, Node, Sprite, Vec3, tween } from 'cc';
+import { _decorator, Label, Node, Sprite, Tween, Vec3, tween } from 'cc';
 import { UIView } from '../ui/UIView';
 import { UIButton } from '../ui/UIButton';
 import { setActive, setLabel } from './ViewUtils';
@@ -15,8 +15,9 @@ export class SugarRailView extends UIView {
     @property(UIButton) undoBtn: UIButton | null = null;
     @property(UIButton) hintBtn: UIButton | null = null;
     @property(Node) talentDots: Node | null = null;
+    @property(Node) readyRing: Node | null = null;
 
-    private _ready = false;
+    private _ready: boolean | null = null;
 
     onOpen(): void {
         this.assertRefs([
@@ -24,7 +25,6 @@ export class SugarRailView extends UIView {
             ['burstBtn', this.burstBtn],
         ]);
         this.setValue(0);
-        this.setBurstReady(false);
         this.setTalentCount(0);
     }
 
@@ -38,27 +38,22 @@ export class SugarRailView extends UIView {
         }
         setLabel(this.percentLabel, `${Math.round(value)}`);
         const ready = ratio >= 1;
-        if (ready !== this._ready) {
-            this._ready = ready;
-            this.setBurstReady(ready);
-        }
+        if (ready !== this._ready) this.setBurstReady(ready);
     }
 
     setBurstReady(ready: boolean): void {
-        if (!this.burstBtn) return;
-        this.burstBtn.setInteractable(ready);
-        if (ready) {
-            this.burstBtn.node.setScale(1, 1, 1);
-            tween(this.burstBtn.node)
-                .repeatForever(
-                    tween(this.burstBtn.node)
-                        .to(0.5, { scale: new Vec3(1.08, 1.08, 1) })
-                        .to(0.5, { scale: new Vec3(1, 1, 1) }),
-                )
-                .start();
-        } else {
-            this.burstBtn.node.setScale(1, 1, 1);
-        }
+        this._ready = ready;
+        this.burstBtn?.setInteractable(ready);
+        const ring = this.readyRing;
+        if (!ring) return;
+        Tween.stopAllByTarget(ring);
+        ring.active = ready;
+        if (!ready) return;
+        ring.setScale(0.82, 0.82, 1);
+        tween(ring).repeatForever(tween<Node>()
+            .to(0.65, { scale: new Vec3(1.12, 1.12, 1) }, { easing: 'sineInOut' })
+            .to(0.65, { scale: new Vec3(0.82, 0.82, 1) }, { easing: 'sineInOut' })
+        ).start();
     }
 
     setTalentCount(count: number): void {

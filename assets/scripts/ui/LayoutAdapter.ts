@@ -16,6 +16,8 @@ export interface LayoutInfo {
     cardsCenterY: number;
     /** 棋盘中心 Y */
     boardCenterY: number;
+    boardCenterX: number;
+    outerGap: number;
     boardW: number;
     boardH: number;
     cell: number;
@@ -63,16 +65,23 @@ export class LayoutAdapter {
         const padBottom = bottom + TUNING.ui.hintHeight;
         const padCenterY = padBottom + TUNING.ui.padHeight / 2;
 
-        const boardTop = topBarBottom - 8;
-        const boardBottom = padBottom + TUNING.ui.padHeight + 8;
+        const boardTop = topBarBottom - TUNING.ui.shadowGap - 8;
+        const boardBottom = padBottom + TUNING.ui.padHeight + TUNING.ui.boardPadding;
         const boardAreaH = Math.max(120, boardTop - boardBottom);
 
-        const cellByWidth = (contentWidth - 8) / TUNING.board.cols;
+        // 棋盘和右侧糖能轨作为整体居中，左边只需为边框留空。
+        const railReach = TUNING.ui.railGap + TUNING.ui.railWidth / 2;
+        const frameEdge = 12;
+        const boardMaxW = contentWidth - frameEdge - railReach;
+        const cellByWidth = boardMaxW / TUNING.board.cols;
         const cellByHeight = (boardAreaH - 8) / TUNING.board.rows;
-        const cell = Math.max(
+        // 贴图的透明边已收紧，取回约 2% 的格心距离，保留原有糖块的可见宽度。
+        const slot = Math.max(
             TUNING.ui.cellMin,
             Math.min(TUNING.ui.cellMax, Math.floor(Math.min(cellByWidth, cellByHeight))),
         );
+
+        const cell = slot * 0.98;
 
         return {
             width,
@@ -81,6 +90,8 @@ export class LayoutAdapter {
             safeBottom,
             headerCenterY,
             cardsCenterY,
+            outerGap: Math.max(0, (boardAreaH - cell * TUNING.board.rows) / 2 - 8),
+            boardCenterX: (frameEdge - railReach) / 2,
             boardCenterY: (boardTop + boardBottom) / 2,
             boardW: cell * TUNING.board.cols,
             boardH: cell * TUNING.board.rows,

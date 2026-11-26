@@ -1,5 +1,5 @@
 /** 三选一：Mask / Title / Cards / Btn_Skip；卡片错峰 60ms 入场。 */
-import { _decorator, Label, Node, Prefab, UIOpacity, Vec3, instantiate, tween } from 'cc';
+import { _decorator, Label, Node, Prefab, Vec3, instantiate, tween } from 'cc';
 import { UIView } from '../ui/UIView';
 import { UIButton } from '../ui/UIButton';
 import { TalentCardView } from './TalentCardView';
@@ -46,15 +46,10 @@ export class TalentPickerView extends UIView {
                 card.setTalent(def);
                 card.bind(() => this._finish(def.id));
                 this._cards.push(card);
-                const op = node.getComponent(UIOpacity) || node.addComponent(UIOpacity);
-                op.opacity = 0;
-                node.setScale(0.85, 0.85, 1);
-                tween(op)
-                    .delay(i * (TUNING.talents.cardStaggerMs / 1000))
-                    .to(0.14, { opacity: 255 })
-                    .start();
+                node.setScale(0, 0, 1);
                 tween(node)
                     .delay(i * (TUNING.talents.cardStaggerMs / 1000))
+                    .set({ scale: new Vec3(0.85, 0.85, 1) })
                     .to(0.2, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' })
                     .start();
             });

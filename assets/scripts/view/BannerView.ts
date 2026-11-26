@@ -1,5 +1,5 @@
 /** 横幅：同色 xN / 连锁 xN / 整行 / LEVEL UP（排队，最多 3 条）。 */
-import { _decorator, Label, Node, Sprite, UIOpacity, Vec3, tween } from 'cc';
+import { _decorator, Label, Node, Sprite, Tween, UIOpacity, Vec3, tween } from 'cc';
 import { UIView } from '../ui/UIView';
 import { setLabel } from './ViewUtils';
 import { playClip } from '../utils/Anim';
@@ -26,10 +26,10 @@ export class BannerView extends UIView {
     show(text: string, kind: BannerKind = 'combo'): void {
         this._queue.push({ text, kind });
         if (this._queue.length > 3) this._queue.shift();
-        if (!this._playing) void this._next();
+        if (!this._playing) this._next();
     }
 
-    private async _next(): Promise<void> {
+    private _next(): void {
         const item = this._queue.shift();
         if (!item) {
             this._playing = false;
@@ -47,7 +47,7 @@ export class BannerView extends UIView {
                       ? THEME.bannerRow
                       : THEME.bannerCombo;
         }
-        if (!this.panel) return;
+        if (!this.panel) { this.clear(); return; }
 
         const op = this.panel.getComponent(UIOpacity) || this.panel.addComponent(UIOpacity);
         op.opacity = 0;
@@ -58,14 +58,14 @@ export class BannerView extends UIView {
             tween(this.panel!).to(0.18, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
         });
 
-        await new Promise<void>((resolve) => setTimeout(resolve, TUNING.feedback.bannerMs));
-        await new Promise<void>((resolve) => {
-            tween(op).to(0.18, { opacity: 0 }).call(() => resolve()).start();
-        });
-        await this._next();
+        tween(op).delay(TUNING.feedback.bannerMs / 1000).to(0.18, { opacity: 0 })
+            .call(() => this._next()).start();
     }
 
     clear(): void {
+        const op = this.panel?.getComponent(UIOpacity);
+        if (op) Tween.stopAllByTarget(op);
+        if (this.panel) Tween.stopAllByTarget(this.panel);
         this._queue.length = 0;
         this._playing = false;
         this.node.active = false;

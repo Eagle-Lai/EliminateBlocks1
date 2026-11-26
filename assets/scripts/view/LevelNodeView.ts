@@ -2,7 +2,7 @@
 import { _decorator, Label, Node, Sprite } from 'cc';
 import { UIView } from '../ui/UIView';
 import { UIButton } from '../ui/UIButton';
-import { setActive, setLabel } from './ViewUtils';
+import { loadSprite, setActive, setLabel } from './ViewUtils';
 import { mutationById } from '../config/MutationTable';
 import { assets } from '../service/AssetService';
 import { ART } from '../config/AssetKeys';
@@ -11,6 +11,7 @@ const { ccclass, property } = _decorator;
 
 @ccclass('LevelNodeView')
 export class LevelNodeView extends UIView {
+    @property(Sprite) artwork: Sprite | null = null;
     @property(Label) indexLabel: Label | null = null;
     @property(Label) nameLabel: Label | null = null;
     @property(Label) starsLabel: Label | null = null;
@@ -22,7 +23,10 @@ export class LevelNodeView extends UIView {
         this.assertRefs([['indexLabel', this.indexLabel], ['button', this.button]]);
     }
 
-    setLevel(id: number, name: string, stars: number, unlocked: boolean, mutationId: number): void {
+    setLevel(id: number, name: string, stars: number, unlocked: boolean, mutationId: number, chapter: number): void {
+        loadSprite(this.artwork, ART.chapterScene(chapter));
+        this.button?.setInteractable(unlocked);
+        setActive(this.node.getChildByName('NextLevel'), unlocked && stars === 0);
         setLabel(this.indexLabel, String(id));
         setLabel(this.nameLabel, name);
         setLabel(this.starsLabel, stars > 0 ? '★'.repeat(stars) : '');

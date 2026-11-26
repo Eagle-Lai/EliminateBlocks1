@@ -2,6 +2,7 @@
 import { _decorator, Node } from 'cc';
 import { UIView } from '../ui/UIView';
 import { UIButton } from '../ui/UIButton';
+import { popArt } from './UIMotion';
 
 const { ccclass, property } = _decorator;
 
@@ -18,6 +19,7 @@ export class ColorPickerView extends UIView {
         if (this.chipsRoot) {
             this.chipsRoot.children.forEach((chip, i) => {
                 const btn = chip.getComponent(UIButton);
+                popArt(chip.getChildByName('Gem'), i * 0.055, 0.32);
                 if (btn) btn.onClick = () => this._finish(i);
             });
         }
@@ -34,4 +36,6 @@ export class ColorPickerView extends UIView {
         this._resolve = null;
         resolve?.(color);
     }
+
+    onClose(): void { this._finish(null); }
 }

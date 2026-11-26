@@ -2,15 +2,17 @@
  * 章节地图：Tabs / LevelGrid / Progress / Btn_Back。
  * 关卡格由 LevelNode.prefab 实例化到 LevelGrid（Layout 在 Prefab 里配好）。
  */
-import { _decorator, Label, Node, Prefab, instantiate } from 'cc';
+import { _decorator, Color, Label, Node, Prefab, Sprite, instantiate } from 'cc';
 import { UIView } from '../ui/UIView';
 import { UIButton } from '../ui/UIButton';
 import { ChapterTabView } from './ChapterTabView';
 import { LevelNodeView } from './LevelNodeView';
-import { setLabel } from './ViewUtils';
+import { revealGrid, setLabel } from './ViewUtils';
 import { assets } from '../service/AssetService';
 import { CHAPTERS, LEVELS } from '../config/LevelTable';
 import { chapterCleared, chapterUnlocked } from '../config/LevelTable';
+import { THEME } from '../config/ThemeConfig';
+import { popArt } from './UIMotion';
 
 const { ccclass, property } = _decorator;
 
@@ -18,6 +20,7 @@ const { ccclass, property } = _decorator;
 export class ChapterMapView extends UIView {
     @property(Node) tabsRoot: Node | null = null;
     @property(Node) levelGrid: Node | null = null;
+    @property(Node) butterflies: Node | null = null;
     @property(Prefab) levelNodePrefab: Prefab | null = null;
     @property(Label) progressLabel: Label | null = null;
     @property(Label) titleLabel: Label | null = null;
@@ -35,7 +38,6 @@ export class ChapterMapView extends UIView {
         const info = data as { stars?: Record<number, number>; chapter?: number } | undefined;
         this._stars = info?.stars ?? {};
         this._chapter = info?.chapter ?? 1;
-        this._buildTabs();
         this.setChapter(this._chapter);
     }
 
@@ -67,7 +69,16 @@ export class ChapterMapView extends UIView {
 
     setChapter(chapter: number): void {
         this._chapter = chapter;
+        this._buildTabs();
         const cfg = CHAPTERS[chapter - 1];
+        const wingColor = THEME.blockColors[chapter - 1] ?? THEME.accent;
+        this.butterflies?.children.forEach((wing, i) => {
+            const sprite = wing.getComponent(Sprite);
+            if (!sprite) return;
+            const tint = Color.lerp(new Color(), wingColor, Color.WHITE, 0.46);
+            sprite.color = new Color(tint.r, tint.g, tint.b - i * 16, 224);
+            popArt(wing, i * 0.045, 0.54);
+        });
         setLabel(this.titleLabel, cfg?.name ?? `第 ${chapter} 章`);
         setLabel(
             this.progressLabel,
@@ -76,7 +87,10 @@ export class ChapterMapView extends UIView {
 
         const prefab = this.levelNodePrefab ?? assets.getPrefab('prefabs/ui/LevelNode');
         if (!this.levelGrid || !prefab) return;
-        for (const node of this._nodes) node.node.destroy();
+        for (const item of this._nodes) {
+            item.node.removeFromParent();
+            item.node.destroy();
+        }
         this._nodes = [];
         const list = LEVELS.filter((l) => l.chapter === chapter);
         for (const level of list) {
@@ -86,7 +100,7 @@ export class ChapterMapView extends UIView {
             if (!view) continue;
             view.onOpen();
             const unlocked = chapterUnlocked(this._stars, chapter) && this._prevCleared(chapter, level.slot);
-            view.setLevel(level.id, level.name, this._stars[level.id] ?? 0, unlocked, level.mutationId);
+            view.setLevel(level.id, level.name, this._stars[level.id] ?? 0, unlocked, level.mutationId, chapter);
             view.bind(() => {
                 if (!unlocked) return;
                 this._onSelect?.(level.id);
@@ -96,6 +110,7 @@ export class ChapterMapView extends UIView {
         // 重新排列：Layout 组件在 Prefab 上，调用一次即可
         const layout = this.levelGrid.getComponent('cc.Layout') as unknown as { updateLayout: () => void } | null;
         layout?.updateLayout();
+        revealGrid(this.levelGrid, 4);
     }
 
     private _prevCleared(chapter: number, slot: number): boolean {
@@ -111,7 +126,6 @@ export class ChapterMapView extends UIView {
 
     refreshStars(stars: Record<number, number>): void {
         this._stars = stars;
-        this._buildTabs();
         this.setChapter(this._chapter);
     }
 }

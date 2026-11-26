@@ -1,5 +1,5 @@
 /** 轻提示：Bg + Icon + Text，自动淡出。 */
-import { _decorator, Label, Node, Sprite, UIOpacity, Vec3, tween } from 'cc';
+import { _decorator, Label, Node, Sprite, Tween, UIOpacity, Vec3, tween } from 'cc';
 import { UIView } from '../ui/UIView';
 import { setLabel, setActive } from './ViewUtils';
 import { TUNING } from '../config/GameTuning';
@@ -24,6 +24,8 @@ export class ToastView extends UIView {
         const bg = this.bg;
         if (!bg) return;
         const op = bg.getComponent(UIOpacity) || bg.addComponent(UIOpacity);
+        Tween.stopAllByTarget(op);
+        Tween.stopAllByTarget(bg);
         op.opacity = 0;
         bg.setScale(0.9, 0.9, 1);
         tween(op).to(0.14, { opacity: 255 }).start();
@@ -36,7 +38,7 @@ export class ToastView extends UIView {
             .to(0.2, { opacity: 0 })
             .call(() => {
                 if (seq !== this._seq) return;
-                this.node.active = false;
+                this.close();
             })
             .start();
     }

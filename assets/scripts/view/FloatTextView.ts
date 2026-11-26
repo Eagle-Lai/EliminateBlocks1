@@ -1,5 +1,5 @@
 /** 飘分：8 个 Prefab Label 循环复用，运行时零节点创建。 */
-import { _decorator, Color, Label, Node, UIOpacity, Vec3, tween } from 'cc';
+import { _decorator, Color, Label, Node, Tween, UIOpacity, Vec3, tween } from 'cc';
 import { UIView } from '../ui/UIView';
 import { TUNING } from '../config/GameTuning';
 
@@ -20,6 +20,7 @@ export class FloatTextView extends UIView {
     private _index = 0;
 
     onOpen(): void {
+        this.clear();
         this._slots = [];
         if (!this.slotRoot) return;
         for (let i = 0; i < this.slotRoot.children.length; i++) {
@@ -28,7 +29,7 @@ export class FloatTextView extends UIView {
             this._slots.push({
                 node,
                 label: node.getComponent(Label),
-                opacity: node.getComponent(UIOpacity),
+                opacity: node.getComponent(UIOpacity) ?? node.addComponent(UIOpacity),
                 busy: false,
             });
         }
@@ -43,6 +44,8 @@ export class FloatTextView extends UIView {
         }
         if (!slot) return;
 
+        Tween.stopAllByTarget(slot.node);
+        if (slot.opacity) Tween.stopAllByTarget(slot.opacity);
         slot.busy = true;
         slot.node.active = true;
         slot.node.setPosition(pos);
@@ -67,16 +70,13 @@ export class FloatTextView extends UIView {
                     slot!.busy = false;
                 })
                 .start();
-        } else {
-            setTimeout(() => {
-                slot!.node.active = false;
-                slot!.busy = false;
-            }, TUNING.fx.popDurationMs);
         }
     }
 
     clear(): void {
         for (const slot of this._slots) {
+            Tween.stopAllByTarget(slot.node);
+            if (slot.opacity) Tween.stopAllByTarget(slot.opacity);
             slot.node.active = false;
             slot.busy = false;
         }

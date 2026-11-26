@@ -40,16 +40,19 @@ export class PieceView extends Component {
     private _cells: CellSlot[] = [];
     private _mirrors: CellSlot[] = [];
     private _ghosts: CellSlot[] = [];
+    private _mirrorGhosts: CellSlot[] = [];
     private _cell = 60;
     private _boardW = 600;
     private _boardH = 960;
 
     init(frames: (SpriteFrame | null)[]): void {
         this._frames = frames;
+        if (this._cells.length) { this.setVisible(false); return; }
         for (let i = 0; i < 4; i++) {
             this._cells.push(this._spawnPieceCell(this.pieceLayer, `Piece_${i}`));
             this._mirrors.push(this._spawnPieceCell(this.pieceLayer, `Mirror_${i}`));
             this._ghosts.push(this._spawnGhostCell(`Ghost_${i}`));
+            this._mirrorGhosts.push(this._spawnGhostCell(`MirrorGhost_${i}`));
         }
         this.setVisible(false);
     }
@@ -88,9 +91,15 @@ export class PieceView extends Component {
         this._cell = cell;
         this._boardW = boardW;
         this._boardH = boardH;
-        for (const slot of [...this._cells, ...this._mirrors, ...this._ghosts]) {
+        const side = cell;
+        for (const slot of [...this._cells, ...this._mirrors, ...this._ghosts, ...this._mirrorGhosts]) {
             const ui = slot.node.getComponent(UITransform);
-            if (ui) ui.setContentSize(cell * 0.96, cell * 0.96);
+            if (ui) ui.setContentSize(side, side);
+            // 子节点（虚影 Fill/描边、骨牌高光）在 Prefab 里是 96 基准，必须跟随格子尺寸，否则虚影比格子大一圈
+            for (const child of slot.node.children) {
+                const cu = child.getComponent(UITransform);
+                if (cu) cu.setContentSize(side, side);
+            }
         }
     }
 
@@ -100,14 +109,18 @@ export class PieceView extends Component {
      * @param dir 1 向下 / -1 向上（倒悬）
      * @param mirrorX 镜像副本的 x（null 表示不显示镜像）
      */
-    sync(piece: PieceModel, ghostY: number, dir: 1 | -1 = 1, mirrorX: number | null = null): void {
+    sync(piece: PieceModel, ghostY: number, dir: 1 | -1 = 1, mirrorX: number | null = null, mirrorColor = piece.color): void {
         this.setVisible(true);
         const frame = this._frames[piece.color] ?? null;
+        const mirrorFrame = this._frames[mirrorColor] ?? null;
+        const maxC = piece.width - 1;
         for (let i = 0; i < 4; i++) {
             const cellData = piece.cells[i];
             const slot = this._cells[i];
             const mirror = this._mirrors[i];
             const ghost = this._ghosts[i];
+            const mirrorGhost = this._mirrorGhosts[i];
+            mirrorGhost.node.active = false;
             if (!cellData) {
                 slot.node.active = false;
                 mirror.node.active = false;
@@ -119,27 +132,30 @@ export class PieceView extends Component {
             this._place(slot, frame, r, c);
 
             if (mirrorX !== null) {
-                let maxC = 0;
-                for (const p of piece.cells) maxC = Math.max(maxC, p.c);
-                mirror.node.active = true;
-                this._place(mirror, frame, r, mirrorX + (maxC - cellData.c));
+                const column = mirrorX + maxC - cellData.c;
+                const overlaps = piece.cells.some(cell => cell.r === cellData.r && piece.x + cell.c === column);
+                mirror.node.active = !overlaps;
+                if (!overlaps) {
+                    this._place(mirror, mirrorFrame, r, column);
+                    this._placeGhost(mirrorGhost, ghostY + dir * cellData.r, column, mirrorColor);
+                }
             } else {
                 mirror.node.active = false;
             }
 
-            const gr = dir === 1 ? ghostY + cellData.r : ghostY - cellData.r;
-            ghost.node.active = gr >= 0 && gr < 16;
-            if (ghost.node.active) {
-                ghost.node.setPosition(
-                    -this._boardW / 2 + (c + 0.5) * this._cell,
-                    this._boardH / 2 - (gr + 0.5) * this._cell,
-                    0,
-                );
-                const color = THEME.blockColors[piece.color] ?? THEME.blockColors[0];
-                if (ghost.base) ghost.base.color = new Color(color.r, color.g, color.b, 45);
-                if (ghost.extra) ghost.extra.color = THEME.accentSoft;
-            }
+            this._placeGhost(ghost, ghostY + dir * cellData.r, c, piece.color);
         }
+    }
+
+    private _placeGhost(slot: CellSlot, row: number, column: number, shade: number): void {
+        slot.node.active = row >= 0 && row < Math.round(this._boardH / this._cell);
+        if (!slot.node.active) return;
+        slot.node.setPosition(-this._boardW / 2 + (column + 0.5) * this._cell, this._boardH / 2 - (row + 0.5) * this._cell, 0);
+        const color = THEME.blockColors[shade] ?? THEME.blockColors[0];
+        if (slot.base) slot.base.color = new Color(color.r, color.g, color.b, THEME.ghostFillAlpha);
+        if (slot.extra) slot.extra.color = new Color(
+            Math.min(255, color.r + 50), Math.min(255, color.g + 50), Math.min(255, color.b + 50), THEME.ghostBorderAlpha,
+        );
     }
 
     private _place(slot: CellSlot, frame: SpriteFrame | null, r: number, c: number): void {
@@ -155,7 +171,7 @@ export class PieceView extends Component {
     setVisible(visible: boolean): void {
         this.node.active = visible;
         if (!visible) {
-            for (const slot of [...this._cells, ...this._mirrors, ...this._ghosts]) slot.node.active = false;
+            for (const slot of [...this._cells, ...this._mirrors, ...this._ghosts, ...this._mirrorGhosts]) slot.node.active = false;
         }
     }
 

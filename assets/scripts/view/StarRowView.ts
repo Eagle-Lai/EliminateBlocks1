@@ -1,5 +1,5 @@
 /** 星级行：3 个 Sprite，逐颗弹入。 */
-import { _decorator, Node, Sprite, Vec3, tween } from 'cc';
+import { _decorator, isValid, Node, Sprite, Vec3, tween } from 'cc';
 import { playClip } from '../utils/Anim';
 import { UIView } from '../ui/UIView';
 import { assets } from '../service/AssetService';
@@ -25,13 +25,28 @@ export class StarRowView extends UIView {
         this._loadFrames();
     }
 
+    /** 作为子节点嵌在 Dialog 里时 UIManager 不会调 onOpen，这里兜底加载星星图 */
+    onLoad(): void {
+        this._loadFrames();
+    }
+
+    private _loading = false;
+
     private _loadFrames(): void {
-        assets.loadSpriteFrame(ART.icon('star_filled')).then((sf) => {
-            this._frames.filled = sf;
-            this.redraw();
-        });
-        assets.loadSpriteFrame(ART.icon('star_empty')).then((sf) => {
-            this._frames.empty = sf;
+        if (this._loading || (this._frames.filled && this._frames.empty)) return;
+        this._loading = true;
+        const cachedFilled = assets.getFrame(ART.icon('star_filled'));
+        const cachedEmpty = assets.getFrame(ART.icon('star_empty'));
+        if (cachedFilled) this._frames.filled = cachedFilled;
+        if (cachedEmpty) this._frames.empty = cachedEmpty;
+        void Promise.all([
+            assets.loadSpriteFrame(ART.icon('star_filled')),
+            assets.loadSpriteFrame(ART.icon('star_empty')),
+        ]).then(([filled, empty]) => {
+            if (!isValid(this, true)) return;
+            this._frames.filled = filled ?? this._frames.filled;
+            this._frames.empty = empty ?? this._frames.empty;
+            this._loading = false;
             this.redraw();
         });
     }
@@ -41,6 +56,7 @@ export class StarRowView extends UIView {
     }
 
     setStars(count: number): void {
+        this._loadFrames();
         this._count = Math.max(0, Math.min(3, count));
         this.redraw();
         playClip(this.node, 'star-pop', () => {

@@ -1,5 +1,6 @@
 /** 视图工具：只做属性赋值与尺寸设置，不创建节点。 */
 import { Label, Node, Sprite, SpriteFrame, UITransform, UIOpacity } from 'cc';
+import { popArt } from './UIMotion';
 import { assets } from '../service/AssetService';
 
 export function setLabel(label: Label | null, text: string): void {
@@ -10,10 +11,13 @@ export function setSprite(sprite: Sprite | null, frame: SpriteFrame | null): voi
     if (sprite && sprite.spriteFrame !== frame) sprite.spriteFrame = frame;
 }
 
+const requestedFrame = new WeakMap<Sprite, string | null>();
 export function loadSprite(sprite: Sprite | null, path: string | null): void {
-    if (!sprite || !path) return;
+    if (!sprite) return;
+    requestedFrame.set(sprite, path);
+    if (!path) { sprite.spriteFrame = null; return; }
     assets.loadSpriteFrame(path).then((sf) => {
-        if (sf && sprite.isValid) sprite.spriteFrame = sf;
+        if (sf && sprite.isValid && requestedFrame.get(sprite) === path) sprite.spriteFrame = sf;
     });
 }
 
@@ -37,8 +41,16 @@ export function setOpacity(target: Node | UIOpacity | null, value: number): void
     if (op) op.opacity = value;
 }
 
+/** 插画沿网格对角线依次翻开，格子和按钮可立即操作。 */
+export function revealGrid(grid: Node | null, columns: number): void {
+    grid?.children.forEach((cell, i) => {
+        const diagonal = i % columns + Math.floor(i / columns);
+        popArt(cell.getChildByName('Artwork'), diagonal * 0.033, 0.52);
+    });
+}
+
 export function fmt(n: number): string {
-    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
-    if (n >= 10000) return `${(n / 1000).toFixed(1)}k`;
+    if (n >= 1e8) return `${+(n / 1e8).toFixed(1)}亿`;
+    if (n >= 1e4) return `${+(n / 1e4).toFixed(1)}万`;
     return String(n);
 }

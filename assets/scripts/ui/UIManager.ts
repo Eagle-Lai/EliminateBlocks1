@@ -2,7 +2,7 @@
  * UI 管理器：层栈、Prefab 加载/实例化、open/close/closeTop/closeAll、toast。
  * 只操作 Prefab 实例，不拼界面。Panel 最多 1 个、Popup 最多 1 个、Toast ≤2。
  */
-import { _decorator, Component, Node, Prefab, UITransform, instantiate } from 'cc';
+import { _decorator, BlockInputEvents, Color, Component, Node, Prefab, Sprite, Tween, UIOpacity, UITransform, Vec2, Vec3, instantiate, tween } from 'cc';
 import { PREFAB_MAP, type UILayer } from '../config/UIPrefabs';
 import { assets } from '../service/AssetService';
 import { audio } from '../service/AudioService';
@@ -28,7 +28,10 @@ export class UIManager extends Component {
     @property(Node) layerToast: Node | null = null;
 
     private _open: OpenEntry[] = [];
-    private _loading = new Map<string, Promise<UIView | null>>();
+    private _cached = new Map<string, UIView>();
+    private _requests = new Map<string, number>();
+    private _sequence = 0;
+    private _touchRipple: Node | null = null;
 
     onLoad(): void {
         UIManager.instance = this;
@@ -39,8 +42,38 @@ export class UIManager extends Component {
     }
 
     onDestroy(): void {
+        this._requests.clear();
+        const opacity = this._touchRipple?.isValid ? this._touchRipple.getComponent(UIOpacity) : null;
+        if (opacity) Tween.stopAllByTarget(opacity);
         if (UIManager.instance === this) UIManager.instance = null;
         if (UIView.host === this) UIView.host = null;
+    }
+
+    /** 放在顶层并复用一个冲击波，页面切换时仍能看见手指落点。 */
+    rippleAt(point: Vec2): void {
+        const layer = this.layerToast;
+        if (!layer) return;
+        if (!this._touchRipple) {
+            const prefab = assets.getPrefab('prefabs/fx/ShockwaveFx');
+            if (!prefab) return;
+            const ripple = instantiate(prefab);
+            ripple.name = 'TouchRipple';
+            ripple.setParent(layer);
+            const sprite = ripple.getComponent(Sprite);
+            if (sprite) sprite.color = new Color(169, 243, 255, 255);
+            this._touchRipple = ripple;
+        }
+        const ripple = this._touchRipple;
+        const opacity = ripple.getComponent(UIOpacity) ?? ripple.addComponent(UIOpacity);
+        Tween.stopAllByTarget(ripple);
+        Tween.stopAllByTarget(opacity);
+        ripple.active = true;
+        ripple.setWorldPosition(point.x, point.y, layer.worldPosition.z);
+        ripple.setScale(0.15, 0.15, 1);
+        opacity.opacity = 250;
+        tween(ripple).to(0.32, { scale: new Vec3(1.15, 1.15, 1) }, { easing: 'quadOut' }).start();
+        tween(opacity).delay(0.055).to(0.265, { opacity: 0 })
+            .call(() => { ripple.active = false; }).start();
     }
 
     get<T extends UIView = UIView>(key: string): T | null {
@@ -71,26 +104,26 @@ export class UIManager extends Component {
             Logger.error('UIManager', `未注册的 Prefab 键：${key}`);
             return null;
         }
+        if (entry.layer === 'panel' || entry.layer === 'popup') this._cancelPending(entry.layer);
+        const request = ++this._sequence;
+        this._requests.set(key, request);
         const existing = this.get<T>(key);
         if (existing) {
+            this._requests.delete(key);
             existing.node.active = true;
             existing.onOpen(data);
             return existing;
         }
-        const pending = this._loading.get(key);
-        if (pending) return (await pending) as T | null;
-
-        const task = this._createView(key, entry, data);
-        this._loading.set(key, task);
         try {
-            return (await task) as T | null;
+            return (await this._createView(key, entry, request, data)) as T | null;
         } finally {
-            this._loading.delete(key);
+            if (this._requests.get(key) === request) this._requests.delete(key);
         }
     }
 
-    private async _createView(key: string, entry: (typeof PREFAB_MAP)[string], data?: unknown): Promise<UIView | null> {
+    private async _createView(key: string, entry: (typeof PREFAB_MAP)[string], request: number, data?: unknown): Promise<UIView | null> {
         const prefab: Prefab | null = await assets.loadPrefab(entry.path);
+        if (this._requests.get(key) !== request) return null;
         if (!prefab) {
             Logger.error('UIManager', `Prefab 加载失败：${entry.path}`);
             return null;
@@ -102,8 +135,9 @@ export class UIManager extends Component {
         }
 
         // 层互斥：Panel 只留一个；Popup 只留一个
-        if (entry.layer === 'panel') this.closeLayer('panel');
-        if (entry.layer === 'popup') this.closeLayer('popup');
+        if (entry.layer === 'panel' || entry.layer === 'popup') {
+            for (const item of this._open.slice()) if (item.layer === entry.layer) this.close(item.key);
+        }
         if (entry.layer === 'toast') {
             const toasts = this._open.filter((o) => o.layer === 'toast');
             while (toasts.length >= 2) {
@@ -112,8 +146,12 @@ export class UIManager extends Component {
             }
         }
 
-        const node = instantiate(prefab);
+        const cached = this._cached.get(key);
+        this._cached.delete(key);
+        const node = cached?.isValid ? cached.node : instantiate(prefab);
+        if (entry.modal && !node.getComponent(BlockInputEvents)) node.addComponent(BlockInputEvents);
         node.setParent(layerNode);
+        node.setSiblingIndex(layerNode.children.length - 1);
         node.setPosition(0, 0, 0);
         const ut = node.getComponent(UITransform);
         if (ut) ut.setAnchorPoint(0.5, 0.5);
@@ -141,6 +179,7 @@ export class UIManager extends Component {
     }
 
     close(key: string): void {
+        this._requests.delete(key);
         for (let i = this._open.length - 1; i >= 0; i--) {
             const item = this._open[i];
             if (item.key !== key) continue;
@@ -150,18 +189,26 @@ export class UIManager extends Component {
             } catch (err) {
                 Logger.warn('UIManager', `onClose 失败：${key}`, err);
             }
-            if (item.entry.cache) item.view.node.active = false;
+            item.view.node.active = false;
+            if (item.entry.cache) this._cached.set(key, item.view);
             else item.view.node.destroy();
+            if (item.layer === 'popup') audio.unduck();
             return;
         }
     }
 
+    private _cancelPending(layer: UILayer): void {
+        for (const key of this._requests.keys()) if (PREFAB_MAP[key].layer === layer) this._requests.delete(key);
+    }
+
     closeLayer(layer: UILayer): void {
+        this._cancelPending(layer);
         const list = this._open.filter((o) => o.layer === layer);
         for (const item of list) this.close(item.key);
     }
 
     closeTop(layer: UILayer = 'popup'): void {
+        this._cancelPending(layer);
         for (let i = this._open.length - 1; i >= 0; i--) {
             if (this._open[i].layer === layer) {
                 this.close(this._open[i].key);
@@ -171,6 +218,7 @@ export class UIManager extends Component {
     }
 
     closeAll(): void {
+        this._requests.clear();
         const list = this._open.slice().reverse();
         for (const item of list) this.close(item.key);
     }

@@ -2,10 +2,10 @@
  * 单格渲染单元（Prefab 实例）：Base + KindOverlay + SpecialOverlay + UIOpacity。
  * 特殊块只切 SpriteFrame，不新建节点。
  */
-import { _decorator, Color, Component, Sprite, SpriteFrame, UIOpacity, UITransform, Vec3, tween } from 'cc';
+import { _decorator, Color, Component, Sprite, SpriteFrame, Tween, UIOpacity, UITransform, Vec3, tween } from 'cc';
 import type { BlockData } from '../core/BoardModel';
 import { ART } from '../config/AssetKeys';
-import { SPECIAL_TABLE } from '../config/SpecialBlockTable';
+import { loadSprite } from './ViewUtils';
 import { assets } from '../service/AssetService';
 
 const { ccclass, property } = _decorator;
@@ -25,12 +25,12 @@ export class BlockView extends Component {
     private _kind: string = 'normal';
 
     get sizeScale(): number {
-        return 0.96;
+        return 1;
     }
 
     setCellSize(cell: number): void {
         this._cell = cell;
-        const size = Math.round(cell * 0.96);
+        const size = Math.round(cell);
         for (const sprite of [this.base, this.kindOverlay, this.specialOverlay]) {
             if (!sprite) continue;
             sprite.node.setScale(1, 1, 1);
@@ -62,15 +62,11 @@ export class BlockView extends Component {
             this._special = special;
             if (this.specialOverlay) {
                 if (special) {
-                    const def = SPECIAL_TABLE[special as keyof typeof SPECIAL_TABLE];
                     this.specialOverlay.node.active = true;
-                    assets.loadSpriteFrame(ART.special[special as keyof typeof ART.special]).then((sf) => {
-                        if (this.specialOverlay && this.specialOverlay.isValid) this.specialOverlay.spriteFrame = sf;
-                    });
-                    void def;
+                    loadSprite(this.specialOverlay, ART.special[special as keyof typeof ART.special]);
                 } else {
                     this.specialOverlay.node.active = false;
-                    this.specialOverlay.spriteFrame = null;
+                    loadSprite(this.specialOverlay, null);
                 }
             }
         }
@@ -138,6 +134,8 @@ export class BlockView extends Component {
     }
 
     resetVisual(): void {
+        Tween.stopAllByTarget(this.node);
+        if (this.opacity) Tween.stopAllByTarget(this.opacity);
         this.node.setScale(1, 1, 1);
         if (this.opacity) this.opacity.opacity = 255;
     }

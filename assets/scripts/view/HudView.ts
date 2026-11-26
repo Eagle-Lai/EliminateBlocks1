@@ -2,17 +2,21 @@
  * 顶部 HUD：品牌行（异变角标 / 暂停 / 重开）、得分卡、等级卡 + 进度条、目标卡、下一块预览。
  * 所有子节点来自 Prefab，代码只改字符串、进度与显隐。
  */
-import { _decorator, Label, Node, Sprite, SpriteFrame, Vec3, tween } from 'cc';
+import { _decorator, Label, Node, Sprite, SpriteFrame, Tween, Vec3, tween } from 'cc';
 import { UIView } from '../ui/UIView';
 import { UIButton } from '../ui/UIButton';
-import { setLabel, setActive, setSize, fmt } from './ViewUtils';
+import { loadSprite, setLabel, setActive, setSize, setPos, fmt } from './ViewUtils';
+import { ART } from '../config/AssetKeys';
 import { TUNING } from '../config/GameTuning';
 import type { PieceModel } from '../core/PieceModel';
+import { popArt, scatter } from './UIMotion';
 
 const { ccclass, property } = _decorator;
 
 @ccclass('HudView')
 export class HudView extends UIView {
+    @property(Sprite) artwork: Sprite | null = null;
+    @property(Node) scoreSparks: Node | null = null;
     @property(Label) brandLabel: Label | null = null;
     @property(Label) titleLabel: Label | null = null;
     @property(Label) scoreLabel: Label | null = null;
@@ -50,18 +54,19 @@ export class HudView extends UIView {
         if (this.restartBtn) this.restartBtn.onClick = onRestart;
     }
 
-    setTitle(text: string): void {
+    setTitle(text: string, theme: number): void {
+        loadSprite(this.artwork, ART.chapterScene(theme));
         setLabel(this.titleLabel, text);
     }
 
     setScore(score: number): void {
         if (this._lastScore === score) return;
+        const gained = this._lastScore >= 0 && score > this._lastScore;
         this._lastScore = score;
         setLabel(this.scoreLabel, fmt(score));
-        if (this.scoreLabel) {
-            const node = this.scoreLabel.node;
-            node.setScale(1.08, 1.08, 1);
-            tween(node).to(0.12, { scale: new Vec3(1, 1, 1) }).start();
+        if (gained) {
+            popArt(this.scoreLabel?.node, 0, 1.16);
+            scatter(this.scoreSparks, 80, 28);
         }
     }
 
@@ -83,11 +88,22 @@ export class HudView extends UIView {
             this.progressFill.type = Sprite.Type.FILLED;
             this.progressFill.fillType = Sprite.FillType.HORIZONTAL;
             this.progressFill.fillStart = 0;
-            this.progressFill.fillRange = value;
+            Tween.stopAllByTarget(this.progressFill);
+            if (value > this.progressFill.fillRange) {
+                tween(this.progressFill).to(0.23, { fillRange: value }, { easing: 'quadOut' }).start();
+            } else this.progressFill.fillRange = value;
         }
     }
 
     setGoal(visible: boolean, text = '', value = ''): void {
+        if (this.goalCard && visible !== this.goalCard.active) {
+            const score = this.scoreLabel?.node.parent ?? null;
+            const level = this.levelLabel?.node.parent ?? null;
+            setSize(score, visible ? 220 : 320, 96);
+            setPos(score, visible ? -240 : -190, -34);
+            setSize(level, visible ? 170 : 246, 96);
+            setPos(level, visible ? -35 : 98, -34);
+        }
         setActive(this.goalCard, visible);
         if (!visible) return;
         setLabel(this.goalLabel, text);
@@ -117,6 +133,9 @@ export class HudView extends UIView {
             const sprite = cells[i];
             if (!sprite) continue;
             sprite.node.active = true;
+            Tween.stopAllByTarget(sprite.node);
+            sprite.node.setScale(0.75, 0.75, 1);
+            tween(sprite.node).to(0.18, { scale: Vec3.ONE }, { easing: 'backOut' }).start();
             setSize(sprite.node, cellSize * 0.94, cellSize * 0.94);
             sprite.node.setPosition(
                 -totalW / 2 + (cell.c + 0.5) * cellSize,
