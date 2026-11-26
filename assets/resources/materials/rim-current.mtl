@@ -1,0 +1,19 @@
+{
+  "__type__": "cc.Material",
+  "_name": "rim-current",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "7ea229b0-b033-540b-830f-84ab8bfd895c",
+    "__expectedType__": "cc.EffectAsset"
+  },
+  "_techIdx": 0,
+  "_defines": [
+    {
+      "LIGHT_STYLE": 11
+    }
+  ],
+  "_props": [
+    {}
+  ]
+}

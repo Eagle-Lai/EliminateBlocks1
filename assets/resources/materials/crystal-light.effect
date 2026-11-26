@@ -1,0 +1,250 @@
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: light-vs:vert
+      frag: light-fs:frag
+      rasterizerState: { cullMode: none }
+      depthStencilState: { depthTest: false, depthWrite: false }
+      blendState:
+        targets:
+        - { blend: true, blendSrc: src_alpha, blendDst: one, blendSrcAlpha: zero, blendDstAlpha: one }
+}%
+
+CCProgram light-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #if USE_LOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+  out vec2 uv;
+  out vec4 tint;
+  vec4 vert () {
+    vec4 p = vec4(a_position, 1.0);
+    #if USE_LOCAL
+      p = cc_matWorld * p;
+    #endif
+    uv = a_texCoord;
+    tint = a_color;
+    return cc_matViewProj * p;
+  }
+}%
+
+CCProgram light-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #pragma define-meta LIGHT_STYLE range([0, 11])
+  in vec2 uv;
+  in vec4 tint;
+
+  float softLine(float distanceToLine, float width) {
+    return exp2(-abs(distanceToLine) / width);
+  }
+
+  // A narrow luminous hem and a translucent folded curtain above it.
+  vec3 silk(vec2 p, float t, float phase, vec3 hue) {
+    float x = p.x * 6.28 + phase;
+    float curve = 0.48 + 0.21 * sin(x * 0.9 + t) + 0.09 * sin(1.9 * x - t * 0.61);
+    float d = p.y - curve;
+    float pleats = 0.55 + 0.45 * sin(4.3 * x + sin(x + t) * 5.0 - t);
+    float curtain = softLine(d, 0.105) * smoothstep(-0.012, 0.025, d);
+    float rim = softLine(d, 0.012);
+    return hue * (0.36 * curtain + 0.52 * pleats * curtain + 0.75 * rim)
+         + vec3(0.4, 0.54, 0.67) * softLine(d, 0.004);
+  }
+
+  float orbitTrail(float angle, float radius, float track, float phase) {
+    float behind = fract((phase - angle) / 6.28318);
+    return exp2(-behind * 14.0) * softLine(radius - track, 0.012);
+  }
+
+  vec3 orbital(vec2 p, float t) {
+    float radius = length(p);
+    float a = atan(p.y, p.x + 0.00001);
+    float divisions = smoothstep(0.25, 0.62, cos(36.0 * a - t));
+    float ticks = divisions * softLine(radius - 0.82, 0.009);
+    float bands = softLine(radius - 0.76, 0.008) + 0.7 * softLine(radius - 0.9, 0.005);
+    float track = 0.65 + 0.045 * sin(3.0 * a + 0.8 * t);
+    float comet = orbitTrail(a, radius, 0.76, t) + orbitTrail(-a, radius, 0.9, t * 0.7 + 1.8);
+    vec2 head = p - vec2(cos(t), sin(t)) * 0.76;
+    float glint = softLine(length(head), 0.035) + softLine(abs(head.x) + abs(head.y) * 0.18, 0.01)
+                * softLine(length(head), 0.06);
+    return vec3(0.30, 0.78, 1.0) * (0.48 * bands + 0.8 * ticks + comet + 0.2 * softLine(radius - 0.78, 0.065))
+         + vec3(0.86, 0.48, 1.0) * softLine(radius - track, 0.009) + vec3(1.0, 0.9, 0.65) * glint;
+  }
+
+  vec3 corona(vec2 p, float t) {
+    float r = length(p);
+    float a = atan(p.y, p.x + 0.00001);
+    float blades = 0.5 + 0.5 * cos(13.0 * a + t + 0.8 * sin(5.0 * a - t * 0.31));
+    float fine = pow(0.5 + 0.5 * cos(27.0 * a - 0.7 * t), 14.0);
+    float falloff = (1.0 - smoothstep(0.15, 1.0, r));
+    return mix(vec3(1.0, 0.43, 0.16), vec3(1.0, 0.88, 0.47), blades)
+         * falloff * (0.13 + 0.72 * blades * blades + 0.45 * fine);
+  }
+
+  // A travelling point illuminates each edge of a five-star constellation.
+  float starHeight(float i, float t) {
+    return 0.48 + 0.24 * sin(i * 3.7 + 0.22 * sin(t + i));
+  }
+  vec3 constellation(vec2 q, float t) {
+    vec2 p = vec2(q.x * 5.0, q.y);
+    float i = floor(p.x);
+    vec2 start = vec2(i, starHeight(i, t));
+    vec2 edge = vec2(1.0, starHeight(i + 1.0, t) - start.y);
+    float along = clamp(dot(p - start, edge) / dot(edge, edge), 0.0, 1.0);
+    float dist = length(p - start - edge * along);
+    vec2 nearest = vec2(floor(p.x + 0.5), starHeight(floor(p.x + 0.5), t));
+    vec2 delta = abs(p - nearest);
+    float diamond = softLine(delta.x + delta.y, 0.03);
+    float crossLight = softLine(min(delta.x, delta.y), 0.007) * softLine(length(delta), 0.08);
+    float sweep = exp2(-fract((t - i - along) / 5.0) * 25.0);
+    return vec3(0.41, 0.65, 1.0) * (0.48 + sweep) * softLine(dist, 0.012)
+         + vec3(1.0, 0.85, 0.47) * (diamond * 1.3 + crossLight + sweep * softLine(dist, 0.04));
+  }
+
+  vec3 soundWave(vec2 p, float t) {
+    float x = p.x * 12.0;
+    float envelope = 0.12 + 0.24 * pow(sin(p.x * 3.14159), 2.0);
+    float first = 0.5 + sin(x - 2.8 * t + sin(x * 0.8 + t)) * envelope;
+    float echo = 0.5 + sin(x * 1.3 + 2.0 * t) * envelope * 0.78;
+    return vec3(0.28, 0.95, 1.0) * (softLine(p.y - first, 0.025) + 0.32 * softLine(p.y - first, 0.12))
+         + vec3(0.96, 0.35, 0.89) * softLine(p.y - echo, 0.022);
+  }
+
+  vec3 foil(vec2 p, float t) {
+    float d = fract(p.x * 0.65 + p.y * 0.21 - t * 0.37) - 0.5;
+    float shine = softLine(d, 0.035) + 0.48 * softLine(d - 0.065, 0.009);
+    return mix(vec3(0.42, 0.85, 1.0), vec3(1.0, 0.71, 0.4), p.x) * shine;
+  }
+
+  // Angular noise puts sharp corners and secondary forks into the mutation arc.
+  float fault(float a, float t) {
+    float coarse = abs(fract(a * 9.0 + t * 0.13) - 0.5);
+    float fine = abs(fract(a * 23.0 - t * 0.07) - 0.5);
+    return 0.72 + coarse * 0.25 + fine * 0.072 + 0.035 * sin(a * 18.85 + t);
+  }
+
+  vec3 fracture(vec2 p, float t) {
+    float a = atan(p.y, p.x + 0.00001) / 6.28318;
+    float r = length(p);
+    float d = r - fault(a, t);
+    float surge = 0.48 + 0.52 * pow(0.5 + 0.5 * cos(12.56637 * a - t * 2.4), 3.0);
+    float branch = d + 0.09 * sin(a * 31.4159 + t);
+    return vec3(1.0, 0.27, 0.74) * (0.52 * softLine(d, 0.054) + 0.9 * softLine(branch, 0.009)) * surge
+         + vec3(0.82, 0.79, 1.0) * softLine(d, 0.008)
+         + vec3(0.3, 0.65, 1.0) * softLine(r - 0.93, 0.005) * surge;
+  }
+
+  vec3 prismWheel(vec2 p, float t) {
+    float a = atan(p.y, p.x + 0.00001);
+    float r = length(p);
+    vec3 spectrum = 0.60 + 0.4 * cos(a + t * 0.42 + vec3(0.0, 2.1, 4.2));
+    float facet = cos(mod(a + t * 0.16 + 0.31416, 0.62832) - 0.31416);
+    float outer = r * facet - 0.84;
+    float inner = abs(r - 0.7);
+    float shine = 0.55 + 0.45 * cos(5.0 * a - t * 1.6);
+    return spectrum * (softLine(outer, 0.012) + 0.32 * softLine(outer, 0.051)
+         + shine * softLine(inner, 0.015) + 0.28 * softLine(r * facet - 0.78, 0.006))
+         + vec3(0.86, 0.93, 1.0) * orbitTrail(a, r, 0.7, t);
+  }
+
+  #if LIGHT_STYLE == 8
+  // A sparse column of translucent candy bubbles with two specular reflections.
+  vec3 bubbles(vec2 p, float t) {
+    float h = p.y * 5.6 - t * 0.26;
+    float i = floor(h);
+    float phase = i * 2.47 + t * 0.8;
+    vec2 d = vec2(p.x - 0.5 - 0.24 * sin(phase), (fract(h) - 0.5) * 1.54);
+    d /= 0.13 + 0.08 * (1.0 + cos(i * 2.23));
+    float r = length(d);
+    float a = atan(d.y, d.x + 0.0001);
+    vec3 iridescence = 0.58 + 0.42 * cos(a + t * 0.62 + vec3(0.0, 2.1, 4.2));
+    float rim = softLine(r - 0.89, 0.049);
+    float glass = (0.08 + 0.26 * r * r) * (1.0 - smoothstep(0.79, 0.92, r));
+    float cap = length((d - vec2(-0.32, 0.50)) * vec2(1.0, 1.9));
+    float glint = softLine(cap, 0.14) + softLine(length(d - vec2(-0.53, 0.27)), 0.10);
+    return iridescence * (rim + glass + 0.30 * softLine(r - 0.78, 0.12))
+         + vec3(0.95, 1.0, 1.0) * (2.0 * glint + 0.28 * rim);
+  }
+  #elif LIGHT_STYLE == 9
+  // Faceted upper and lower wings fold about the body as the butterfly hovers.
+  vec3 butterfly(vec2 p, float t) {
+    p = (p - 0.5) * vec2(2.48, 1.72);
+    p -= vec2(0.48 * sin(t * 0.72), 0.24 * cos(t * 1.21));
+    float tilt = 0.22 * cos(t * 0.72);
+    p = mat2(cos(tilt), -sin(tilt), sin(tilt), cos(tilt)) * p;
+    vec2 w = vec2(abs(p.x) / (0.64 + 0.30 * cos(t * 5.7)), p.y);
+    vec2 tip = w - vec2(0.24, 0.18);
+    vec2 top = vec2(dot(tip, vec2(0.79, 0.61)) * 3.15, dot(tip, vec2(-0.61, 0.79)) * 6.7);
+    float upper = max(length(top), abs(top.x + 0.35 * top.y) * 1.08);
+    vec2 foot = w - vec2(0.16, -0.12);
+    float lower = length(vec2(foot.x * 4.8, (foot.y + 0.39 * foot.x) * 7.0));
+    float wing = min(upper, lower);
+    vec3 hue = mix(vec3(0.36, 0.92, 1.0), vec3(1.0, 0.49, 0.88), smoothstep(-0.12, 0.3, w.y));
+    float veins = softLine(min(abs(w.y - 0.84*w.x), abs(w.y - 0.34*w.x)), 0.013);
+    float spot = 1.0 - smoothstep(0.025, 0.046, length(w - vec2(0.36, 0.25)));
+    float body = softLine(abs(p.x) + abs(p.y + 0.02) * 0.11, 0.020) * (1.0 - smoothstep(0.14, 0.23, abs(p.y)));
+    float feeler = softLine(abs(w.x - 0.6 * (w.y - 0.13)), 0.009) * smoothstep(0.13, 0.16, w.y) * (1.0 - smoothstep(0.28, 0.30, w.y));
+    return hue * (0.71 - 0.33 * veins + 0.50 * spot) * (1.0 - smoothstep(0.92, 1.01, wing))
+         + vec3(0.66, 0.92, 1.0) * (softLine(wing - 0.97, 0.12) + body + feeler);
+  }
+  #elif LIGHT_STYLE == 10
+  vec3 peppermint(vec2 p, float t) {
+    vec2 d = (p - 0.5) * 2.6;
+    float r = length(d);
+    float a = atan(d.y, d.x + 0.0001);
+    float stripe = smoothstep(-0.12, 0.12, sin(7.0 * a + 4.8 * r - t * 1.8));
+    vec3 candy = mix(vec3(0.94, 0.24, 0.51), vec3(1.0, 0.88, 0.71), stripe);
+    float surface = (1.0 - smoothstep(0.61, 0.66, r)) * (0.42 + 0.48 * (1.0 - r));
+    float bead = softLine(length(d - vec2(cos(t), sin(t)) * 0.91), 0.072);
+    return candy * surface + vec3(1.0, 0.77, 0.67) * softLine(r - 0.65, 0.034)
+         + vec3(0.33, 0.95, 1.0) * (bead * 1.8 + 0.46 * softLine(r - 0.90, 0.017));
+  }
+  #elif LIGHT_STYLE == 11
+  vec3 borderCurrent(vec2 p, float t) {
+    float travel = fract(p.y * 1.55 - t * 0.22);
+    float head = exp2(-travel * 19.0);
+    float core = softLine(p.x - 0.52, 0.065);
+    float side = softLine(p.x - 0.27, 0.060) * smoothstep(0.40, 0.49, abs(fract(p.y * 23.0) - 0.5));
+    return mix(vec3(0.30, 0.84, 1.0), vec3(1.0, 0.68, 0.90), p.y)
+         * ((0.16 + 1.70 * head) * core + (0.28 + head) * side + 0.35 * head * softLine(p.x - 0.52, 0.28));
+  }
+  #endif
+
+  vec4 frag () {
+    vec2 p = vec2(uv.x, 1.0 - uv.y);
+    float t = cc_time.x;
+    vec3 light;
+    #if LIGHT_STYLE == 1
+      light = orbital(p * 2.0 - 1.0, t * 0.9);
+    #elif LIGHT_STYLE == 2
+      light = corona(p * 2.0 - 1.0, t * 0.55);
+    #elif LIGHT_STYLE == 3
+      light = constellation(p, t * 1.24);
+    #elif LIGHT_STYLE == 4
+      light = soundWave(p, t);
+    #elif LIGHT_STYLE == 5
+      light = foil(p, t);
+    #elif LIGHT_STYLE == 6
+      light = fracture(p * 2.0 - 1.0, t);
+    #elif LIGHT_STYLE == 7
+      light = prismWheel(p * 2.0 - 1.0, t);
+    #elif LIGHT_STYLE == 8
+      light = bubbles(p, t + tint.b * 8.0);
+    #elif LIGHT_STYLE == 9
+      light = butterfly(p, t + tint.b * 15.0);
+    #elif LIGHT_STYLE == 10
+      light = peppermint(p, t);
+    #elif LIGHT_STYLE == 11
+      light = borderCurrent(p, t + tint.b * 10.0);
+    #else
+      light = silk(p, t * 0.55, 0.0, vec3(0.13, 0.84, 0.95))
+            + silk(p, -t * 0.36, 1.85, vec3(0.73, 0.23, 0.92));
+    #endif
+    vec2 feather = smoothstep(vec2(0.0), vec2(0.045, 0.08), min(p, 1.0 - p));
+    return vec4(light * tint.rgb, tint.a * feather.x * feather.y);
+  }
+}%
