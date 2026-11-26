@@ -18,6 +18,7 @@ export interface BlockData {
     kind?: BlockKind;
     /** 特殊块标记；生成后继承锚点颜色 */
     special?: SpecialKind;
+    specialOrder?: number;
 }
 
 export interface DropMove {
@@ -185,6 +186,21 @@ export class BoardModel {
         return n;
     }
 
+    snapshot(): (BlockData | null)[][] {
+        return this._grid.map(row => row.map(block => block ? { ...block } : null));
+    }
+
+    restore(snapshot: readonly (readonly (BlockData | null)[])[]): void {
+        if (snapshot.length !== this.rows || snapshot.some(row => row.length !== this.cols)) {
+            throw new Error('棋盘快照尺寸不符');
+        }
+        this._grid = snapshot.map(row => row.map(block => block ? { ...block } : null));
+    }
+
+    copyFrom(board: BoardModel): void {
+        this.restore(board.grid);
+    }
+
     /** 深拷贝（求解器 / 撤销快照用，保留对象身份在副本内部一致） */
     clone(): BoardModel {
         const copy = new BoardModel(this.cols, this.rows);
@@ -205,14 +221,18 @@ export class BoardModel {
         const h = rows.length;
         const w = h > 0 ? rows[0].length : 0;
         const board = new BoardModel(w, h);
-        let pid = 1000;
+        // 普通出牌使用正整数，镜像使用负奇数，预置格使用负偶数。
+        let pid = 0;
         for (let r = 0; r < h; r++) {
             for (let c = 0; c < w; c++) {
                 const ch = rows[r][c];
                 if (!ch || ch === '.') continue;
                 if (ch === 'S') board.set(r, c, { type: -1, pid: -1, kind: 'stone' });
                 else if (ch === 'B') board.set(r, c, { type: -1, pid: -1, kind: 'brittle' });
-                else board.set(r, c, { type: Number(ch), pid: pid++ });
+                else {
+                    pid -= 2;
+                    board.set(r, c, { type: Number(ch), pid });
+                }
             }
         }
         return board;

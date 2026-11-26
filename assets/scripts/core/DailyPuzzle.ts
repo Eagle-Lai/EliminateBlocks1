@@ -29,6 +29,23 @@ export interface DailyPuzzleData {
     verified: boolean;
 }
 
+/** In the built-in 10-column puzzle pack, "~" stands for ten empty cells. */
+export function unpackDailyBoard(packed: string): string[] {
+    const cells = packed.replace(/~/g, '..........');
+    const rows: string[] = [];
+    for (let i = 0; i < cells.length; i += 10) rows.push(cells.slice(i, i + 10));
+    return rows;
+}
+
+/** Each two digits store a shape index and a color index, in queue order. */
+export function unpackDailyQueue(packed: string): PieceSpec[] {
+    const queue: PieceSpec[] = [];
+    for (let i = 0; i < packed.length; i += 2) {
+        queue.push({ shape: Number(packed[i]), color: Number(packed[i + 1]) });
+    }
+    return queue;
+}
+
 export const DIFFICULTY_MOVE_LIMIT: Record<DailyDifficulty, number> = {
     easy: 10,
     medium: 8,
@@ -84,9 +101,9 @@ export function monthDayFromDayOfYear(dayOfYear: number): { month: number; day: 
 }
 
 export function dayOfYearFromDate(date: Date): number {
-    const start = Date.UTC(date.getUTCFullYear(), 0, 1);
-    const now = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-    return Math.floor((now - start) / 86400000) + 1;
+    const month = date.getMonth();
+    const earlierDays = MONTH_DAYS.slice(0, month).reduce((sum, days) => sum + days, 0);
+    return earlierDays + Math.min(date.getDate(), MONTH_DAYS[month]);
 }
 
 /** 本地日期键（存档用；时钟回拨只会重玩，不重复计连续） */

@@ -12,7 +12,7 @@ export interface PrefabEntry {
 }
 
 export const PREFABS: readonly PrefabEntry[] = [
-    { key: 'boot', path: 'prefabs/ui/Boot', layer: 'panel', cache: true, preload: true },
+    { key: 'boot', path: 'prefabs/ui/Boot', layer: 'panel', cache: false, preload: true },
     { key: 'home', path: 'prefabs/ui/Home', layer: 'panel', cache: true, preload: true },
     { key: 'chapterMap', path: 'prefabs/ui/ChapterMap', layer: 'panel', cache: true, preload: false },
     { key: 'chapterTab', path: 'prefabs/ui/ChapterTab', layer: 'panel', cache: true, preload: false },
@@ -22,7 +22,7 @@ export const PREFABS: readonly PrefabEntry[] = [
     { key: 'settings', path: 'prefabs/ui/Settings', layer: 'popup', cache: false, preload: false, modal: true },
     { key: 'replay', path: 'prefabs/ui/Replay', layer: 'panel', cache: false, preload: false },
     { key: 'background', path: 'prefabs/ui/Background', layer: 'panel', cache: true, preload: true },
-    { key: 'gameScreen', path: 'prefabs/game/GameScreen', layer: 'scene', cache: true, preload: false },
+    { key: 'gameScreen', path: 'prefabs/game/GameScreen', layer: 'scene', cache: false, preload: false },
     { key: 'hud', path: 'prefabs/game/HUD', layer: 'scene', cache: true, preload: false },
     { key: 'pad', path: 'prefabs/game/Pad', layer: 'scene', cache: true, preload: false },
     { key: 'sugarRail', path: 'prefabs/game/SugarRail', layer: 'scene', cache: true, preload: false },

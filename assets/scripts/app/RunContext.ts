@@ -8,6 +8,7 @@ import { MutationRuntime } from '../core/MutationRuntime';
 import { GoalTracker } from '../core/GoalTracker';
 import { InputRecorder } from '../core/InputRecorder';
 import { ShadowTrack } from '../core/ShadowTrack';
+import type { BlockData } from '../core/BoardModel';
 import type { RunConfig } from './GameMode';
 import { endlessConfig } from './GameMode';
 import { TUNING } from '../config/GameTuning';
@@ -15,6 +16,8 @@ import { TUNING } from '../config/GameTuning';
 export class RunContext {
     readonly token = new CancelToken();
     readonly rng: Rng;
+    readonly startedAt = new Date();
+    shadowBest = -1;
     rowsCleared = 0;
     maxChain = 0;
     pieces = 0;
@@ -55,6 +58,11 @@ export class RunContext {
             this.mutation = new MutationRuntime(config.mutations[0], config.mutationTier, this.rng);
         }
         this.sugar.reset(this.mods.startSugar);
+    }
+
+    recordCleared(blocks: readonly BlockData[]): void {
+        this.goal?.onPop(blocks, this.mods.stoneDamageBonus);
+        this.stoneCleared += blocks.filter(block => block.kind === 'stone').length;
     }
 
     /** 撤销快照用 */

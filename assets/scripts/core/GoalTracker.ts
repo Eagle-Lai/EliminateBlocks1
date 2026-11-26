@@ -53,6 +53,12 @@ export class GoalTracker {
         this._done = false;
     }
 
+    restore(snapshot: GoalSnapshot): void {
+        this._value = snapshot.value;
+        this._done = snapshot.done;
+        if (this.goal.type === 'score') this._score = this._value;
+    }
+
     /** 同步总分（score 目标用） */
     syncScore(score: number): void {
         this._score = score;
@@ -64,7 +70,7 @@ export class GoalTracker {
     }
 
     /** 一次消除：统计颜色格与石块 */
-    onPop(removed: readonly BlockData[]): void {
+    onPop(removed: readonly BlockData[], stoneDamageBonus = 0): void {
         if (this.goal.type === 'color') {
             const color = this.goal.color ?? 0;
             for (const b of removed) {
@@ -73,7 +79,7 @@ export class GoalTracker {
             }
         } else if (this.goal.type === 'stone') {
             for (const b of removed) {
-                if (b.kind === 'stone') this._value++;
+                if (b.kind === 'stone') this._value += 1 + stoneDamageBonus;
             }
         }
     }
@@ -130,8 +136,9 @@ export class GoalTracker {
 
 /** 目标定义合法性（内容表校验用） */
 export function validateGoal(goal: GoalDef): string | null {
-    if (goal.target <= 0) return `目标值必须为正：${goal.type}=${goal.target}`;
-    if (goal.type === 'color' && (goal.color === undefined || goal.color < 0 || goal.color > 4)) {
+    if (!goal || ['score', 'rows', 'color', 'special', 'burst', 'stone'].indexOf(goal.type) < 0) return '未知目标';
+    if (!Number.isInteger(goal.target) || goal.target <= 0) return `目标值必须为正：${goal.type}=${goal.target}`;
+    if (goal.type === 'color' && (!Number.isInteger(goal.color) || goal.color < 0 || goal.color > 4)) {
         return `color 目标缺少合法颜色：${goal.color}`;
     }
     return null;

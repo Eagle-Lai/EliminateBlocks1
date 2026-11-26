@@ -3,6 +3,7 @@
  * 判定顺序：≥6 → 5 共线 → 5 十字 → 5 非共线 → 4 共线 → 无。
  * 生成位置：最后一个落点格（不在组内时取组内离它最近的格）。
  */
+import { TUNING } from '../config/GameTuning';
 import type { BlockData, BoardModel, SpecialKind } from './BoardModel';
 import type { Cell } from '../config/PieceShapeTable';
 import type { GroupInfo } from './MatchFinder';
@@ -82,13 +83,31 @@ export function planSpecials(
 }
 
 /** 把生成的特殊块写回棋盘（在 removeCells 之后调用） */
-export function writeSpecials(board: BoardModel, spawns: readonly SpecialSpawn[]): void {
-    for (const spawn of spawns) {
-        const block: BlockData = {
-            type: spawn.type,
-            pid: spawn.pid,
-            special: spawn.special,
-        };
-        board.set(spawn.cell.r, spawn.cell.c, block);
+export function writeSpecials(board: BoardModel, spawns: readonly SpecialSpawn[]): number {
+    if (spawns.length === 0) return 0;
+    const active: { cell: Cell; order: number }[] = [];
+    let order = 0;
+    for (let r = 0; r < board.rows; r++) {
+        for (let c = 0; c < board.cols; c++) {
+            const block = board.get(r, c);
+            if (block?.special) {
+                const age = block.specialOrder ?? 0;
+                active.push({ cell: { r, c }, order: age });
+                order = Math.max(order, age);
+            }
+        }
     }
+    active.sort((a, b) => a.order - b.order);
+    for (const spawn of spawns) {
+        const specialOrder = ++order;
+        const block: BlockData = { type: spawn.type, pid: spawn.pid, special: spawn.special, specialOrder };
+        board.set(spawn.cell.r, spawn.cell.c, block);
+        active.push({ cell: spawn.cell, order: specialOrder });
+    }
+    const overflow = Math.max(0, active.length - TUNING.specials.maxOnBoard);
+    for (let i = 0; i < overflow; i++) {
+        const cell = active[i].cell;
+        board.set(cell.r, cell.c, null);
+    }
+    return overflow;
 }

@@ -7,6 +7,10 @@ export class Rng {
         if (this._state === 0) this._state = 0x9e3779b9;
     }
 
+    getState(): number { return this._state; }
+
+    setState(state: number): void { this._state = state >>> 0; }
+
     next(): number {
         this._state = (this._state + 0x6d2b79f5) >>> 0;
         let t = this._state;

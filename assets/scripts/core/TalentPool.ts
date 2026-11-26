@@ -12,6 +12,8 @@ export interface OfferOptions {
     legendaryUsed: boolean;
     /** 是否放开 P2 天赋（默认 false） */
     allowP2?: boolean;
+    allowHints?: boolean;
+    allowStoneBonus?: boolean;
     /** 传说概率加成（天赋 12） */
     luckBonus?: number;
 }
@@ -41,7 +43,10 @@ export class TalentPool {
     /** 抽三张；抽不满时放宽类别限制，仍保证至少一张普通 */
     static offer(rng: Rng, opts: OfferOptions): TalentDef[] {
         const owned = new Set(opts.owned);
-        const base = TALENT_TABLE.filter((t) => !owned.has(t.id) && (opts.allowP2 === true || !t.p2));
+        const base = TALENT_TABLE.filter(t => !owned.has(t.id)
+            && (opts.allowP2 || !t.p2)
+            && (opts.allowHints || !t.mods.hintDiscount)
+            && (opts.allowStoneBonus !== false || !t.mods.stoneDamageBonus));
         if (base.length === 0) return [];
 
         const picked: TalentDef[] = [];
@@ -64,13 +69,12 @@ export class TalentPool {
 
         // 2) 传说名额（≤1 且 ≤3% + luckBonus）
         const chance = Math.min(0.5, LEGENDARY_CHANCE + (opts.luckBonus ?? 0));
-        let legendaryUsed = opts.legendaryUsed;
+        const legendaryUsed = opts.legendaryUsed;
         if (!legendaryUsed && picked.every((p) => p.rarity !== 'legendary') && rng.next() < chance) {
             const legends = base.filter((t) => t.rarity === 'legendary' && accept(t));
             const legend = pickWeighted(rng, legends);
             if (legend) {
                 take(legend);
-                legendaryUsed = true;
             }
         }
 
@@ -79,7 +83,7 @@ export class TalentPool {
         while (picked.length < 3 && guard < 40) {
             guard++;
             const pool = base.filter(
-                (t) => accept(t) && (t.rarity !== 'legendary' || !legendaryUsed),
+                (t) => accept(t) && t.rarity !== 'legendary',
             );
             if (pool.length === 0) break;
             const next = pickWeighted(rng, pool);
@@ -92,7 +96,7 @@ export class TalentPool {
         while (picked.length < 3 && guard < 40) {
             guard++;
             const pool = base.filter(
-                (t) => !picked.some((p) => p.id === t.id) && (t.rarity !== 'legendary' || !legendaryUsed),
+                (t) => !picked.some((p) => p.id === t.id) && t.rarity !== 'legendary',
             );
             if (pool.length === 0) break;
             const next = pickWeighted(rng, pool);

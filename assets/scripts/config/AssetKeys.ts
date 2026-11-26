@@ -9,6 +9,7 @@ export const ART = {
         daily: 'art/bg/bg_daily',
         result: 'art/bg/bg_result',
     },
+    chapterScene: (id: number) => `art/bg/scene_${id}`,
     blocks: [
         'art/blocks/block_0',
         'art/blocks/block_1',

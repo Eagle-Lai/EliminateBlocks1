@@ -6,6 +6,8 @@
 import type { BlockData } from './BoardModel';
 import type { Cell } from '../config/PieceShapeTable';
 
+import type { MutationRuntime } from './MutationRuntime';
+
 export interface CollisionBoardLike {
     readonly cols: number;
     readonly rows: number;
@@ -32,6 +34,23 @@ export function collides(
         if (nr >= 0 && nr < board.rows && board.get(nr, nc)) return true;
     }
     return false;
+}
+
+export function legalPose(board: CollisionBoardLike, cells: readonly Cell[], x: number, y: number, mutation: MutationRuntime | null): boolean {
+    const dir = mutation?.dir ?? 1;
+    if (collides(board, cells, x, y, dir)) return false;
+    if (!mutation?.mirrors) return true;
+    const mirror = mutation.mirrorOf(cells, x, board.cols);
+    return !collides(board, mirror.cells, mirror.x, y, dir);
+}
+
+export function dropYForPose(board: CollisionBoardLike, cells: readonly Cell[], x: number, y: number, mutation: MutationRuntime | null): number {
+    const dir = mutation?.dir ?? 1;
+    const primaryY = findDropY(board, cells, x, y, dir);
+    if (!mutation?.mirrors) return primaryY;
+    const mirror = mutation.mirrorOf(cells, x, board.cols);
+    const mirrorY = findDropY(board, mirror.cells, mirror.x, y, dir);
+    return dir === 1 ? Math.min(primaryY, mirrorY) : Math.max(primaryY, mirrorY);
 }
 
 /** 计算硬降落点（不修改任何状态） */

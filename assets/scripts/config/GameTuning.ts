@@ -67,8 +67,8 @@ export const TUNING = {
         maxAspect: 2.3,
         margin: 24,
         topBarHeight: 138,
-        padHeight: 172,
-        hintHeight: 40,
+        padHeight: 136,
+        hintHeight: 0,
         cellMin: 36,
         cellMax: 78,
         radiusCard: 24,
@@ -78,12 +78,14 @@ export const TUNING = {
         /** 糖能轨与棋盘右缘的间距 */
         railGap: 34,
         /** 影子条与棋盘上缘的间距 */
-        shadowGap: 10,
+        shadowGap: 28,
+        /** 棋盘外框（托盘 + 发光描边）与顶栏/控制区的留白：v4 外框比格子区宽 20px */
+        boardPadding: 22,
         /** HUD 下一块预览：单格上限与基准包围盒 */
         nextCellMax: 22,
-        nextCellBaseline: 84,
+        nextCellBaseline: 64,
         /** HUD 下一块预览纵向微调 */
-        nextCellShiftY: 6,
+        nextCellShiftY: 9,
         /** 影子条宽度读取失败时的兜底值（= Prefab 轨宽） */
         shadowBarFallbackW: 620,
         /** 影子条高度 */

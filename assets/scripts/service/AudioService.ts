@@ -17,6 +17,9 @@ class AudioServiceImpl {
     private _current: BgmKey | null = null;
     private _ducked = false;
     private _fadeToken = 0;
+    private _trackRequest = 0;
+    private _gain = 1;
+    private _hidden = false;
     private _clips = new Map<SfxKey, AudioClip>();
 
     init(root: Node): void {
@@ -35,26 +38,29 @@ class AudioServiceImpl {
         b.loop = true;
         this._bgm = b;
 
-        game.on(Game.EVENT_HIDE, () => this.pauseBgm());
-        game.on(Game.EVENT_SHOW, () => this.resumeBgm());
+        game.off(Game.EVENT_HIDE, this.pauseBgm, this);
+        game.off(Game.EVENT_SHOW, this.resumeBgm, this);
+        game.on(Game.EVENT_HIDE, this.pauseBgm, this);
+        game.on(Game.EVENT_SHOW, this.resumeBgm, this);
     }
 
-    async preload(): Promise<void> {
+    async preload(onLoaded?: () => void): Promise<void> {
         const keys = Object.keys(SFX_PATHS) as SfxKey[];
         if (USE_BUNDLES) {
             await assets.loadBundle('audio-sfx');
             for (const key of keys) {
                 const clip = await assets.loadClipFromBundle('audio-sfx', SFX_PATHS[key]);
                 if (clip) this._clips.set(key, clip);
+                onLoaded?.();
             }
             return;
         }
-        await assets.preloadClips(keys.map((k) => SFX_PATHS[k]));
+        await assets.preloadClips(keys.map((k) => SFX_PATHS[k]), onLoaded);
     }
 
     setMuted(muted: boolean): void {
         this._muted = muted;
-        if (this._bgm) this._bgm.volume = muted ? 0 : this._bgmVolume;
+        this._applyVolume();
     }
 
     get muted(): boolean {
@@ -64,7 +70,7 @@ class AudioServiceImpl {
     setBusVolume(bus: 'bgm' | 'sfx', value: number): void {
         if (bus === 'bgm') {
             this._bgmVolume = Math.max(0, Math.min(1, value));
-            if (this._bgm && !this._muted && !this._ducked) this._bgm.volume = this._bgmVolume;
+            this._applyVolume();
         } else {
             this._sfxVolume = Math.max(0, Math.min(1, value));
             if (this._sfx) this._sfx.volume = this._sfxVolume;
@@ -88,11 +94,13 @@ class AudioServiceImpl {
 
     /** 播放 BGM（从 Bundle 取；同曲不重播） */
     async playBgm(key: BgmKey, fadeMs = 400): Promise<void> {
+        const request = ++this._trackRequest;
         if (this._current === key && this._bgm?.playing) return;
         const cfg = BGM_PATHS[key];
         const clip = USE_BUNDLES
             ? await assets.loadClipFromBundle(cfg.bundle, cfg.path)
             : await assets.loadClip(`audio/bgm/${cfg.path}`);
+        if (request !== this._trackRequest) return;
         if (!clip || !this._bgm) {
             Logger.warn('AudioService', `BGM 不可用：${key}`);
             return;
@@ -102,49 +110,60 @@ class AudioServiceImpl {
         this._bgm.clip = clip;
         this._bgm.loop = true;
         this._bgm.volume = 0;
-        this._bgm.play();
-        this._fadeTo(this._muted ? 0 : this._bgmVolume, fadeMs);
+        this._gain = 0;
+        if (!this._hidden) this._bgm.play();
+        this._fadeTo(this._ducked ? 0.6 : 1, fadeMs);
     }
 
     stopBgm(fadeMs = 300): void {
+        ++this._trackRequest;
         this._current = null;
         if (!this._bgm) return;
         this._fadeTo(0, fadeMs, () => this._bgm?.stop());
     }
 
     pauseBgm(): void {
+        this._hidden = true;
         if (this._bgm) this._bgm.pause();
     }
 
     resumeBgm(): void {
-        if (this._bgm && this._current && !this._muted) this._bgm.play();
+        this._hidden = false;
+        if (this._bgm && this._current && !this._bgm.playing) this._bgm.play();
     }
 
     /** 弹窗打开时压低 BGM */
     duck(ms = 300): void {
         if (!this._bgm) return;
         this._ducked = true;
-        this._fadeTo(this._bgmVolume * 0.6, ms, () => {
-            this._ducked = false;
-        }, true);
+        if (this._current) this._fadeTo(0.6, ms);
     }
 
-    private _fadeTo(target: number, ms: number, done?: () => void, keepDucked = false): void {
+    unduck(ms = 250): void {
+        this._ducked = false;
+        if (this._current) this._fadeTo(1, ms);
+    }
+
+    private _applyVolume(): void {
+        if (this._bgm) this._bgm.volume = this._muted ? 0 : this._gain * this._bgmVolume;
+    }
+
+    private _fadeTo(target: number, ms: number, done?: () => void): void {
         if (!this._bgm) return;
         this._fadeToken++;
         const token = this._fadeToken;
-        const from = this._bgm.volume;
+        const from = this._gain;
         const proxy = { v: from };
         tween(proxy)
             .to(Math.max(0.05, ms / 1000), { v: target }, {
                 onUpdate: () => {
                     if (token !== this._fadeToken || !this._bgm) return;
-                    this._bgm.volume = proxy.v;
+                    this._gain = proxy.v;
+                    this._applyVolume();
                 },
             })
             .call(() => {
                 if (token !== this._fadeToken) return;
-                if (!keepDucked) this._ducked = false;
                 done?.();
             })
             .start();

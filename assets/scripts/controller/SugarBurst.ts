@@ -3,6 +3,7 @@
  * 不增加 lockCount、不免疫堆顶。
  */
 import { UIOpacity, Vec3, tween } from 'cc';
+import { applyGravity } from '../core/GravityResolver';
 import { applyBurst } from '../core/Simulator';
 import { SugarEnergy } from '../core/SugarEnergy';
 import { TUNING } from '../config/GameTuning';
@@ -33,24 +34,26 @@ export class SugarBurst {
 
         audio.play('sugar_burst');
         haptic.medium();
-        this.view.banner?.show(`糖爆 Lv${level}`, 'level');
+        this.view.banner?.show(`${level} 级糖爆`, 'level');
         await wait(TUNING.sugar.slowMoMs);
 
+        run.token.throwIfCancelled();
         const host = this.view.boardHost;
         if (host) {
             const op = host.getComponent(UIOpacity) || host.addComponent(UIOpacity);
-            for (let i = 0; i < TUNING.sugar.flashCount; i++) {
-                tween(op).to(0.06, { opacity: 90 }).to(0.06, { opacity: 255 }).start();
-            }
+            const flash = tween(op).to(0.06, { opacity: 90 }).to(0.06, { opacity: 255 });
+            tween(op).repeat(TUNING.sugar.flashCount, flash).start();
+            await wait(120 * TUNING.sugar.flashCount);
+            run.token.throwIfCancelled();
         }
 
         const target = color ?? SugarEnergy.targetColor(this.model);
         const radius = level >= 2 ? TUNING.sugar.burstRadius + run.mods.burstRadiusBonus : 0;
-        const removed = applyBurst(this.model, target, radius);
-        const bonus = Math.round(removed.length * 5 * level * run.mods.burstScoreMul);
+        const removed = applyBurst(this.model, target, radius, blocks => run.recordCleared(blocks));
+        const bonus = Math.round(removed.length * 5 * level * run.mods.burstScoreMul * run.mods.scoreMul);
         this.score.add(bonus);
         this.view.hud?.setScore(this.score.score);
-        this.view.hud?.setProgress(0);
+
         if (host) {
             const pos = this.view.board?.cellToLocal(Math.floor(this.model.rows / 2), Math.floor(this.model.cols / 2));
             this.view.floats?.spawn(`+${bonus}`, pos ?? new Vec3(0, 0, 0), THEME.accent);
@@ -58,9 +61,13 @@ export class SugarBurst {
         run.goal?.onBurst(1);
         run.goal?.syncScore(this.score.score);
 
-        this.presenter.prepare(true);
+        applyGravity(this.model, run.mutation?.dir ?? 1);
+        const fogRows = run.mutation?.fogRows ?? 0;
+        await this.view.board?.rebuild(this.model, TUNING.settle.dropMs, { fogRows });
+        run.token.throwIfCancelled();
+        this.presenter.prepare(run.config.specials);
         await this.presenter.run(run, true);
-        run.sugar.reset();
+        run.token.throwIfCancelled();
         this.view.sugarRail?.setValue(0);
         run.deferredLocks = 0;
     }

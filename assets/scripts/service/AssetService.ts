@@ -129,16 +129,25 @@ class AssetServiceImpl {
         else Logger.warn('AssetService', msg);
     }
 
-    async preloadFrames(paths: readonly string[]): Promise<void> {
-        await Promise.all(paths.map((p) => this.loadSpriteFrame(p)));
+    async preloadFrames(paths: readonly string[], onLoaded?: () => void): Promise<void> {
+        await Promise.all(paths.map(async (path) => {
+            await this.loadSpriteFrame(path);
+            onLoaded?.();
+        }));
     }
 
-    async preloadClips(paths: readonly string[]): Promise<void> {
-        await Promise.all(paths.map((p) => this.loadClip(p)));
+    async preloadClips(paths: readonly string[], onLoaded?: () => void): Promise<void> {
+        await Promise.all(paths.map(async (path) => {
+            await this.loadClip(path);
+            onLoaded?.();
+        }));
     }
 
-    async preloadPrefabs(paths: readonly string[]): Promise<void> {
-        await Promise.all(paths.map((p) => this.loadPrefab(p)));
+    async preloadPrefabs(paths: readonly string[], onLoaded?: () => void): Promise<void> {
+        await Promise.all(paths.map(async (path) => {
+            await this.loadPrefab(path);
+            onLoaded?.();
+        }));
     }
 
     /**

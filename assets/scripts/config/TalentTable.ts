@@ -55,7 +55,7 @@ export const TALENT_TABLE: readonly TalentDef[] = [
     { id: 26, name: '提示专家', desc: '残局提示便宜 10 金币', rarity: 'legendary', category: 'luck', icon: 'talent_hint', mods: { hintDiscount: 10 } },
     { id: 27, name: '二次机会', desc: '获得 3 次护盾', rarity: 'legendary', category: 'board', icon: 'talent_shield', mods: { shieldCharges: 3 } },
     { id: 28, name: '全场狂欢', desc: '所有得分 +25%', rarity: 'legendary', category: 'score', icon: 'talent_score', mods: { scoreMul: 1.25 } },
-    { id: 29, name: '加宽棋盘', desc: '棋盘 +1 列（P2）', rarity: 'legendary', category: 'board', icon: 'talent_block', mods: { extraColumn: true }, p2: true },
+    { id: 29, name: '加宽棋盘', desc: '棋盘 +1 列', rarity: 'legendary', category: 'board', icon: 'talent_block', mods: { extraColumn: true }, p2: true },
     { id: 30, name: '天赋馈赠', desc: '撤销 2 次 + 开局糖能 +30', rarity: 'legendary', category: 'sugar', icon: 'talent_undo', mods: { undoCharges: 2, startSugar: 30 } },
 ] as const;
 

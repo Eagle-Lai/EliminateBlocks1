@@ -37,7 +37,8 @@ export function captureUndo(
     level: LevelService,
     run: RunLike,
 ): UndoSnapshot {
-    const dump = board.dump();
+    const original = board.clone();
+    const dump = original.dump();
     return {
         dump,
         score: score.score,
@@ -49,16 +50,7 @@ export function captureUndo(
         rowsCleared: run.rowsCleared,
         deferredLocks: run.deferredLocks,
         restore(target: BoardModel): void {
-            const rows = dump.split('\n');
-            const restored = rows.length === target.rows && rows[0].length === target.cols;
-            if (restored) {
-                const from = BoardModel.fromPattern(rows);
-                for (let r = 0; r < target.rows; r++) {
-                    for (let c = 0; c < target.cols; c++) {
-                        target.set(r, c, from.get(r, c));
-                    }
-                }
-            }
+            target.copyFrom(original);
         },
     };
 }

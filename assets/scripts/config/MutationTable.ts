@@ -1,6 +1,6 @@
 /**
  * 异变表：8 条 × 3 档。
- * 数值单位=锁定次数（"每 N 次锁定触发一次"）；迷雾为覆盖行数。
+ * 数值单位=锁定次数（"每 {间隔} 次锁定触发一次"）；迷雾为覆盖行数。
  * 禁忌组合在配置层拦截：一关只允许一条异变，但校验器仍会拒绝非法组合。
  */
 export type MutationTier = 'light' | 'standard' | 'strong';
@@ -50,7 +50,7 @@ export const MUTATION_TABLE: readonly MutationDef[] = [
         id: 1,
         key: 'frostRain',
         name: '糖霜雨',
-        desc: '每 N 次锁定从底部插入一行霜石',
+        desc: '每 {间隔} 次锁定从底部插入一行霜石',
         icon: 'mutation_frost',
         forbids: [4],
         tiers: {
@@ -115,7 +115,7 @@ export const MUTATION_TABLE: readonly MutationDef[] = [
         id: 6,
         key: 'backflow',
         name: '逆流',
-        desc: '消除后不塌陷，每 N 步统一塌陷一次',
+        desc: '消除后不塌陷，每 {间隔} 步统一塌陷一次',
         icon: 'mutation_backflow',
         forbids: [4],
         tiers: {
@@ -128,7 +128,7 @@ export const MUTATION_TABLE: readonly MutationDef[] = [
         id: 7,
         key: 'brittle',
         name: '脆霜',
-        desc: '每 N 步 2 格变脆霜，邻接消除时碎裂',
+        desc: '每 {间隔} 步 2 格变脆霜，邻接消除时碎裂',
         icon: 'mutation_brittle',
         forbids: [],
         tiers: {
@@ -141,7 +141,7 @@ export const MUTATION_TABLE: readonly MutationDef[] = [
         id: 8,
         key: 'magnet',
         name: '磁力',
-        desc: '每 N 步一列整体位移，遇边界反向',
+        desc: '每 {间隔} 步一列整体位移，遇边界反向',
         icon: 'mutation_magnet',
         forbids: [3],
         tiers: {

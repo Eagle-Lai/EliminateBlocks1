@@ -5,7 +5,7 @@
 import type { BlockData, BlockKind, BoardModel } from './BoardModel';
 import type { Cell } from '../config/PieceShapeTable';
 import { applyGravity } from './GravityResolver';
-import { findGroups, flattenCells, type GroupInfo } from './MatchFinder';
+import { findGroups, flattenCells, biggestAnchor } from './MatchFinder';
 import { ScoreService } from './ScoreService';
 import { expandSpecial, dominantColor } from './SpecialResolver';
 import { planSpecials, writeSpecials, type SpecialSpawn } from './SpecialBlocks';
@@ -16,12 +16,17 @@ export interface SimLockOptions {
     skipKinds?: readonly BlockKind[];
     dir?: 1 | -1;
     maxIterations?: number;
+    level?: number;
+    deferredGravity?: boolean;
+    anchor?: Cell;
     /** 是否生成特殊块 */
     specials?: boolean;
 }
 
 export interface SimLockResult {
     gain: number;
+    groups: number;
+    chainSum: number;
     /** 被消除的方块（含特殊块扩展后的完整集合） */
     removed: BlockData[];
     removedCells: number;
@@ -29,12 +34,6 @@ export interface SimLockResult {
     chains: number;
     /** 本次新增的特殊块数量 */
     specials: number;
-}
-
-function anchorOf(groups: readonly GroupInfo[]): Cell {
-    let biggest = groups[0];
-    for (const g of groups) if (g.size > biggest.size) biggest = g;
-    return biggest.cells[Math.floor(biggest.cells.length / 2)];
 }
 
 /** 在已放置好的棋盘上跑完整结算（同步） */
@@ -48,23 +47,30 @@ export function simulateSettle(board: BoardModel, opts: SimLockOptions = {}): Si
     let removedCells = 0;
     let rowsCleared = 0;
     let chains = 0;
+    let maxChain = 0;
+    let groupCount = 0;
+    let chainSum = 0;
     let specials = 0;
 
     for (let i = 0; i < max; i++) {
         const groups = findGroups(board, minGroup, TUNING.rules.requireTwoPieces, skip);
         if (groups.length > 0) {
             chains++;
+            maxChain = Math.max(maxChain, chains);
+            groupCount += groups.length;
+            chainSum += chains;
             const scored = score.computeGroupScore(groups, chains);
             score.add(scored.gain);
 
             const base = flattenCells(groups);
-            const anchor = anchorOf(groups);
+            const anchor = opts.anchor ?? biggestAnchor(groups);
             const spawns: SpecialSpawn[] = opts.specials
                 ? planSpecials(board, groups, anchor, true)
                 : [];
 
             const expanded = expandSpecial(board, base);
             const cells = expanded.cells;
+            score.add(score.computeExtraScore(board, cells.slice(base.length), chains));
 
             for (const p of cells) {
                 const b = board.get(p.r, p.c);
@@ -86,16 +92,24 @@ export function simulateSettle(board: BoardModel, opts: SimLockOptions = {}): Si
             }
 
             if (spawns.length > 0) {
-                writeSpecials(board, spawns);
+                const overflow = writeSpecials(board, spawns);
+                score.add(overflow * TUNING.specials.overflowScore);
                 specials += spawns.length;
             }
 
-            applyGravity(board, dir);
+            if (!opts.deferredGravity) applyGravity(board, dir);
             continue;
         }
         const rows = board.fullRows();
         if (rows.length > 0) {
-            score.add(score.computeRowScore(rows.length, 1));
+            for (const r of rows) {
+                for (let c = 0; c < board.cols; c++) {
+                    const block = board.get(r, c);
+                    if (block) removed.push(block);
+                }
+            }
+            removedCells += rows.length * board.cols;
+            score.add(score.computeRowScore(rows.length, opts.level ?? 1));
             rowsCleared += rows.length;
             board.clearRows(rows, dir);
             chains = 0;
@@ -106,12 +120,21 @@ export function simulateSettle(board: BoardModel, opts: SimLockOptions = {}): Si
 
     return {
         gain: score.score,
+        groups: groupCount,
+        chainSum,
         removed,
         removedCells,
         rows: rowsCleared,
-        chains,
+        chains: maxChain,
         specials,
     };
+}
+
+/** 锁定时最后写入的格子；特殊糖以此为落点锚。 */
+export function lastLockCell(cells: readonly Cell[], x: number, y: number, dir: 1 | -1 = 1): Cell {
+    const cell = cells[cells.length - 1];
+    if (!cell) throw new Error('骨牌没有格子');
+    return { r: y + dir * cell.r, c: x + cell.c };
 }
 
 /** 把一块骨牌写入棋盘并跑完整结算 */
@@ -131,11 +154,13 @@ export function simulateLock(
         if (r < 0 || r >= board.rows) continue;
         board.set(r, c, { type: color, pid });
     }
-    return simulateSettle(board, opts);
+    return simulateSettle(board, { ...opts, anchor: lastLockCell(cells, x, y, dir) });
 }
 
 /** 糖爆：清掉指定颜色 + 四邻一圈（Lv2 起） */
-export function applyBurst(board: BoardModel, color: number, radius = 0): Cell[] {
+export function applyBurst(
+    board: BoardModel, color: number, radius = 0, onRemove?: (blocks: BlockData[]) => void,
+): Cell[] {
     const targets: Cell[] = [];
     for (let r = 0; r < board.rows; r++) {
         for (let c = 0; c < board.cols; c++) {
@@ -148,6 +173,7 @@ export function applyBurst(board: BoardModel, color: number, radius = 0): Cell[]
         all.set(`${p.r},${p.c}`, p);
         for (let dr = -radius; dr <= radius; dr++) {
             for (let dc = -radius; dc <= radius; dc++) {
+                if (Math.abs(dr) + Math.abs(dc) > radius) continue;
                 const nr = p.r + dr;
                 const nc = p.c + dc;
                 if (!board.inBounds(nr, nc)) continue;
@@ -158,6 +184,7 @@ export function applyBurst(board: BoardModel, color: number, radius = 0): Cell[]
         }
     }
     const cells = Array.from(all.values());
+    if (onRemove) onRemove(cells.map(p => board.get(p.r, p.c) as BlockData));
     board.removeCells(cells);
     return cells;
 }

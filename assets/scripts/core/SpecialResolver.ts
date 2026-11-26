@@ -90,7 +90,7 @@ function areaFor(board: BoardModel, special: SpecialKind, at: Cell): Cell[] {
 
 /**
  * 把一次消除扩展成"含特殊块连锁"的完整集合。
- * 原集合里的特殊块会触发；新纳入的格子里若也有特殊块，继续连锁（最多 4 层防御）。
+ * 仅原消除组内的特殊块触发。范围命中的其他特殊块正常移除。
  */
 export function expandSpecial(board: BoardModel, base: readonly Cell[]): ExpandResult {
     const seen = new Set<string>();
@@ -108,17 +108,11 @@ export function expandSpecial(board: BoardModel, base: readonly Cell[]): ExpandR
 
     const triggers: SpecialTrigger[] = [];
     const recolors: { cell: Cell; type: number }[] = [];
-    const fired = new Set<string>();
-    let guard = 0;
+    const triggerCells = cells.slice();
 
-    for (let i = 0; i < cells.length && guard < 4000; i++, guard++) {
-        const cell = cells[i];
+    for (const cell of triggerCells) {
         const block = board.get(cell.r, cell.c);
         if (!block || !block.special) continue;
-        const k = key(cell.r, cell.c);
-        if (fired.has(k)) continue;
-        fired.add(k);
-
         const special = block.special;
         const area = areaFor(board, special, cell);
         const extra: Cell[] = [];

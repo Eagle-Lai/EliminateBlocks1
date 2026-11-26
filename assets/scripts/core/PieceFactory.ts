@@ -28,6 +28,10 @@ export class PieceFactory {
         this._seq = 0;
     }
 
+    capture(): number { return this._seq; }
+
+    restore(state: number): void { this._seq = state; }
+
     get lastPid(): number {
         return this._seq;
     }

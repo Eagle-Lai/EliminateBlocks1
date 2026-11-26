@@ -85,7 +85,9 @@ export class ResolvePipeline {
     ) {}
 
     async run(token: CancelToken, opts?: { flushGravity?: boolean }): Promise<ResolveResult> {
+        token.throwIfCancelled();
         let chain = 0;
+        let maxChain = 0;
         let iterations = 0;
         const max = this.rules?.maxIterations ?? TUNING.settle.maxIterations;
 
@@ -104,7 +106,6 @@ export class ResolvePipeline {
             }
         }
 
-        let coalesce = false;
         for (; iterations < max; iterations++) {
             token.throwIfCancelled();
 
@@ -117,6 +118,7 @@ export class ResolvePipeline {
 
             if (groups.length > 0) {
                 chain++;
+                maxChain = Math.max(maxChain, chain);
                 const scored = this.score.computeGroupScore(groups, chain, this.rules?.modifiers);
                 const baseCells = flattenCells(groups);
                 const info: PopInfo = {
@@ -145,13 +147,16 @@ export class ResolvePipeline {
                         }
                         cells = merged;
                         info.cells = cells;
+                        info.gain += this.score.computeExtraScore(
+                            this.board, merged.slice(baseCells.length), chain, this.rules?.modifiers,
+                        );
                     }
                 }
 
-                this.score.add(scored.gain);
+                this.score.add(info.gain);
                 this.hooks.onPop(info);
-                this.hooks.onScore(scored.gain, this.score.score, scored.anchor);
-                this.rules?.onEvent?.({ type: 'pop', chain, cells, gain: scored.gain });
+                this.hooks.onScore(info.gain, this.score.score, scored.anchor);
+                this.rules?.onEvent?.({ type: 'pop', chain, cells, gain: info.gain });
 
                 await this.hooks.wait(TUNING.settle.popMs);
                 token.throwIfCancelled();
@@ -165,7 +170,6 @@ export class ResolvePipeline {
                 }
                 await this.hooks.onSync(TUNING.settle.dropMs);
                 token.throwIfCancelled();
-                coalesce = true;
                 continue;
             }
 
@@ -195,7 +199,6 @@ export class ResolvePipeline {
 
                 // 消行后连锁计数归零（与原型一致）
                 chain = 0;
-                coalesce = true;
                 continue;
             }
 
@@ -212,7 +215,6 @@ export class ResolvePipeline {
             this.rules?.onEvent?.({ type: 'levelUp', level: lv });
         }
 
-        void coalesce;
-        return { iterations, chains: chain };
+        return { iterations, chains: maxChain };
     }
 }

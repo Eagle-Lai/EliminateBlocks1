@@ -2,13 +2,14 @@
  * 棋盘手势：拖动按格移动、轻点旋转；带 UI 坐标 → 棋盘本地坐标换算。
  * 只发意图，不改模型。
  */
-import { EventTouch, Node, UITransform, Vec3 } from 'cc';
+import { EventTouch, Node, UITransform, Vec3, isValid } from 'cc';
 import type { BoardView } from '../view/BoardView';
 import { TUNING } from '../config/GameTuning';
 
 export interface BoardInputHandlers {
     canInput: () => boolean;
     onMove: (dx: number, dy: number) => boolean;
+    gravityDir: () => 1 | -1;
     onRotate: () => void;
     onTapCell: (r: number, c: number) => void;
 }
@@ -24,7 +25,7 @@ export class BoardInput {
         this.host.on(Node.EventType.TOUCH_START, this._start, this);
         this.host.on(Node.EventType.TOUCH_MOVE, this._move, this);
         this.host.on(Node.EventType.TOUCH_END, this._end, this);
-        this.host.on(Node.EventType.TOUCH_CANCEL, this._cancel, this);
+        this.host.on(Node.EventType.TOUCH_CANCEL, this.cancel, this);
     }
 
     private _local(e: EventTouch): Vec3 {
@@ -55,13 +56,10 @@ export class BoardInput {
             if (this.handlers.onMove(-1, 0)) drag.moved = true;
             drag.sx--;
         }
-        while (drag.sy < ty) {
-            if (this.handlers.onMove(0, 1)) drag.moved = true;
-            drag.sy++;
-        }
-        while (drag.sy > ty) {
-            if (this.handlers.onMove(0, -1)) drag.moved = true;
-            drag.sy--;
+        const dir = this.handlers.gravityDir();
+        while (drag.sy * dir < ty * dir) {
+            if (this.handlers.onMove(0, dir)) drag.moved = true;
+            drag.sy += dir;
         }
     }
 
@@ -84,14 +82,16 @@ export class BoardInput {
         }
     }
 
-    private _cancel(): void {
+    cancel(): void {
         this._drag = null;
     }
 
     destroy(): void {
+        // 销毁对局时棋盘子节点先于控制器释放，事件也已随节点移除。
+        if (!isValid(this.host, true)) return;
         this.host.off(Node.EventType.TOUCH_START, this._start, this);
         this.host.off(Node.EventType.TOUCH_MOVE, this._move, this);
         this.host.off(Node.EventType.TOUCH_END, this._end, this);
-        this.host.off(Node.EventType.TOUCH_CANCEL, this._cancel, this);
+        this.host.off(Node.EventType.TOUCH_CANCEL, this.cancel, this);
     }
 }

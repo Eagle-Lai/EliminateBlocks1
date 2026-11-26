@@ -20,14 +20,14 @@ export class LevelService {
         this._level = 1;
     }
 
-    /** 返回本次提升的等级数（0 表示未升级） */
+    /** 返回本次跨过的全部等级 */
     tryLevelUp(score: number): number[] {
         const gained: number[] = [];
-        let guard = 0;
-        while (score >= this._level * TUNING.level.threshold && guard < 99) {
+        if (!Number.isFinite(score)) return gained;
+        const target = 1 + Math.floor(score / TUNING.level.threshold);
+        while (this._level < target) {
             this._level++;
             gained.push(this._level);
-            guard++;
         }
         return gained;
     }

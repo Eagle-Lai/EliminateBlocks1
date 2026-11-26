@@ -30,6 +30,20 @@ export class TalentService {
         this._skipCoins = 0;
     }
 
+    capture() {
+        return { owned: this._owned.slice(), mods: { ...this._mods }, offersUsed: this._offersUsed,
+            legendaryUsed: this._legendaryUsed, pending: this._pending.slice(), skipCoins: this._skipCoins };
+    }
+
+    restore(state: ReturnType<TalentService['capture']>): void {
+        this._owned = state.owned.slice();
+        this._mods = { ...state.mods };
+        this._offersUsed = state.offersUsed;
+        this._legendaryUsed = state.legendaryUsed;
+        this._pending = state.pending.slice();
+        this._skipCoins = state.skipCoins;
+    }
+
     get owned(): readonly number[] {
         return this._owned;
     }
@@ -58,11 +72,12 @@ export class TalentService {
     }
 
     /** 抽三张（确定性：同一 rng 序列同一结果） */
-    offer(rng: Rng, allowP2 = false): TalentDef[] {
+    offer(rng: Rng, allowP2 = false, options: { allowHints?: boolean; allowStoneBonus?: boolean } = {}): TalentDef[] {
         const offers = TalentPool.offer(rng, {
             owned: this._owned,
             legendaryUsed: this._legendaryUsed,
             allowP2,
+            ...options,
             luckBonus: this._mods.luckBonus,
         });
         this._pending = offers;
@@ -85,6 +100,7 @@ export class TalentService {
 
     /** 跳过：+15 金币 */
     skip(): number {
+        if (this._pending.length === 0) return 0;
         this._pending = [];
         this._offersUsed++;
         this._skipCoins += TALENT_SKIP_COINS;

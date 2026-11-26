@@ -31,6 +31,7 @@ export interface RunConfig {
     seed: number;
     levelId?: number;
     dailyId?: number;
+    dailyYear?: number;
     /** 异变 id 列表（空 = 无异变） */
     mutations: number[];
     mutationTier: MutationTier;
@@ -59,6 +60,7 @@ export interface RunConfig {
     star3?: number;
     /** 石块关：开局铺石块数量 */
     stoneCount?: number;
+    stoneSeed?: number;
     /** 残局提示首步（P2） */
     hint?: { shape: number; rotation: number; x: number };
 }
@@ -107,6 +109,7 @@ export function levelConfig(level: LevelLike): RunConfig {
         title: level.name,
         star2: level.star2,
         star3: level.star3,
+        stoneSeed: level.stoneSeed,
         stoneCount: level.goalType === 'stone' ? (level.stoneCount ?? level.target + 2) : 0,
     };
 }
@@ -119,11 +122,12 @@ export function dailyConfig(puzzle: {
     queue: PieceSpec[];
     mutationId?: number;
     hint?: { shape: number; rotation: number; x: number };
-}): RunConfig {
+}, puzzleYear = new Date().getFullYear()): RunConfig {
     return {
         mode: 'daily',
         seed: puzzle.id * 104729,
         dailyId: puzzle.id,
+        dailyYear: puzzleYear,
         mutations: puzzle.mutationId ? [puzzle.mutationId] : [],
         mutationTier: 'standard',
         specials: true,
@@ -146,5 +150,5 @@ export function starsFor(score: number, goal: GoalDef, star2: number, star3: num
     if (score >= star3) return 3;
     if (score >= star2) return 2;
     if (goal.type === 'score') return score >= goal.target ? 1 : 0;
-    return 0;
+    return 1;
 }

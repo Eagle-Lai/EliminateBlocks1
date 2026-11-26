@@ -42,6 +42,10 @@ export class MutationRuntime {
         this.deferredEvery = def.key === 'backflow' ? this.params.every : 0;
     }
 
+    capture(): number { return this._magnetDir; }
+
+    restore(state: number): void { this._magnetDir = state; }
+
     get key(): MutationDef['key'] {
         return this.def.key;
     }
@@ -90,8 +94,9 @@ export class MutationRuntime {
             case 'magnet': {
                 if (every <= 0 || lockCount % every !== 0) break;
                 const column = this.rng.int(board.cols);
+                const edge = this._magnetDir === 1 ? board.rows - 1 : 0;
+                if (board.get(edge, column)) this._magnetDir *= -1;
                 const shifted = this._shiftColumn(board, column, this._magnetDir);
-                if (!shifted) this._magnetDir = (-this._magnetDir) as 1 | -1;
                 events.push({ type: 'magnet', column, delta: this._magnetDir, shifted });
                 break;
             }
@@ -153,20 +158,19 @@ export class MutationRuntime {
         return out;
     }
 
-    /** 整列横移；目标列被占用则失败 */
+    /** 从移动方向的边缘开始处理，避免覆盖同一列尚未读取的方块。 */
     private _shiftColumn(board: BoardModel, c: number, delta: number): boolean {
-        const target = c + delta;
-        if (target < 0 || target >= board.cols) return false;
-        for (let r = 0; r < board.rows; r++) {
-            if (board.get(r, c) && board.get(r, target)) return false;
-        }
-        for (let r = 0; r < board.rows; r++) {
-            const b = board.get(r, c);
-            if (!b) continue;
-            board.set(r, target, b);
+        const edge = delta === 1 ? board.rows - 1 : 0;
+        if (board.get(edge, c)) return false;
+        let moved = false;
+        for (let r = edge - delta; r >= 0 && r < board.rows; r -= delta) {
+            const block = board.get(r, c);
+            if (!block) continue;
+            board.set(r + delta, c, block);
             board.set(r, c, null);
+            moved = true;
         }
-        return true;
+        return moved;
     }
 
     /**

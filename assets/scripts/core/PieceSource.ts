@@ -19,6 +19,8 @@ export interface PieceSource {
     /** 剩余数量；Infinity 表示无限 */
     readonly remaining: number;
     reset(): void;
+    capture(): number;
+    restore(state: number): void;
 }
 
 /** 固定队列（每日残局 / 关卡开场） */
@@ -42,6 +44,13 @@ export class QueuePieceSource implements PieceSource {
     reset(): void {
         this._index = 0;
         this._pid = 0;
+    }
+
+    capture(): number { return this._index; }
+
+    restore(state: number): void {
+        this._index = state;
+        this._pid = state;
     }
 
     next(): PieceModel | null {

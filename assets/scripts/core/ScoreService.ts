@@ -5,7 +5,8 @@
  * 天赋只通过可选 ModifierSet 介入；不传时与基线完全一致。
  */
 import type { GroupInfo } from './MatchFinder';
-import { biggestAnchor } from './MatchFinder';
+import { BoardModel } from './BoardModel';
+import { biggestAnchor, findGroups } from './MatchFinder';
 import type { Cell } from '../config/PieceShapeTable';
 import { TUNING } from '../config/GameTuning';
 import type { ModifierSet } from './Modifiers';
@@ -59,9 +60,21 @@ export class ScoreService {
         };
     }
 
+    /** 特效实际追加移走的有色格，各同色连通片按本轮连锁计分。 */
+    computeExtraScore(board: BoardModel, extra: readonly Cell[], chain: number, mods?: ModifierSet): number {
+        if (extra.length === 0) return 0;
+        const affected = new BoardModel(board.cols, board.rows);
+        for (const p of extra) {
+            const block = board.get(p.r, p.c);
+            if (block && block.type >= 0) affected.set(p.r, p.c, block);
+        }
+        const groups = findGroups(affected, 1, false);
+        return groups.length ? this.computeGroupScore(groups, chain, mods).gain : 0;
+    }
+
     computeRowScore(rowCount: number, level: number, mods?: ModifierSet): number {
         const base = rowCount * TUNING.score.rowClear * level;
         if (!mods) return base;
-        return Math.round(base * mods.rowScoreMul + rowCount * mods.rowsScoreBonus);
+        return Math.round((base * mods.rowScoreMul + rowCount * mods.rowsScoreBonus) * mods.scoreMul);
     }
 }

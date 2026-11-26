@@ -35,7 +35,7 @@ export class RunBootstrapper {
             return BoardModel.fromPattern(config.initialBoard);
         }
         if (config.stoneCount && config.stoneCount > 0) {
-            return BoardModel.fromPattern(buildStoneBoard(config.seed, config.stoneCount));
+            return BoardModel.fromPattern(buildStoneBoard(config.stoneSeed ?? config.seed, config.stoneCount));
         }
         return new BoardModel(TUNING.board.cols, TUNING.board.rows);
     }
