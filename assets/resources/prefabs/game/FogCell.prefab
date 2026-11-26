@@ -149,10 +149,10 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 70,
-      "g": 76,
-      "b": 92,
-      "a": 225
+      "r": 52,
+      "g": 40,
+      "b": 110,
+      "a": 236
     },
     "_spriteFrame": {
       "__uuid__": "ab18416a-4a1c-47f7-89fa-1da0e9df3dc0@f9941",

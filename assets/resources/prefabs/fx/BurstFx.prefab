@@ -17,7 +17,11 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": null,
-    "_children": [],
+    "_children": [
+      {
+        "__id__": 6
+      }
+    ],
     "_active": true,
     "_components": [
       {
@@ -157,6 +161,139 @@
     "spark": {
       "__id__": 3
     },
-    "_id": "f0UzGku4lG3oVUhG5GkYeQ"
+    "_id": "f0UzGku4lG3oVUhG5GkYeQ",
+    "shards": {
+      "__id__": 8
+    }
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "CrystalShards",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "_parent": {
+      "__id__": 1
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__id__": 7
+      },
+      {
+        "__id__": 8
+      }
+    ],
+    "_prefab": null,
+    "_lpos": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_lrot": {
+      "__type__": "cc.Quat",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+    },
+    "_lscale": {
+      "__type__": "cc.Vec3",
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "_mobility": 0,
+    "_layer": 33554432,
+    "_euler": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_id": "sQJjOaOR/XYIDi8DHBC8bI"
+  },
+  {
+    "__type__": "cc.UITransform",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 6
+    },
+    "_enabled": true,
+    "__prefab": null,
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 0,
+      "height": 0
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_id": "bhKwTfPRgGFk9fSi39sQQt"
+  },
+  {
+    "__type__": "cc.ParticleSystem2D",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 6
+    },
+    "_id": "c2xqStmlFxVrQO5aS9ITJ0",
+    "_enabled": true,
+    "__prefab": null,
+    "_custom": true,
+    "_spriteFrame": {
+      "__uuid__": "3ac0d1ca-9f4a-400c-99b7-d99ad3a82dfa@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "_totalParticles": 12,
+    "emissionRate": 180,
+    "life": 0.32,
+    "lifeVar": 0.0512,
+    "speed": 192,
+    "speedVar": 38.400000000000006,
+    "angle": 90,
+    "angleVar": 180,
+    "duration": 0.075,
+    "posVar": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "gravity": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": -110
+    },
+    "_startColor": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 228,
+      "b": 142,
+      "a": 255
+    },
+    "_endColor": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 120,
+      "b": 192,
+      "a": 0
+    },
+    "_positionType": 2,
+    "startSize": 26,
+    "startSizeVar": 6.5,
+    "endSize": 10.92,
+    "startSpinVar": 90,
+    "endSpin": 140,
+    "endSpinVar": 160,
+    "_srcBlendFactor": 2,
+    "_dstBlendFactor": 1,
+    "playOnLoad": false,
+    "autoRemoveOnFinish": false
   }
 ]
