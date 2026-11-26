@@ -1,5 +1,7 @@
 # 糖果甜蜜风 · UI 统一规范 v3「莓果奶霜」
 
+> ⚠️ 已被 v4「极光糖晶」取代，现行规范见 `docs/ui-style-aurora.md`；本文仅作历史记录。
+
 > 2026-11-25 两轮产出：v2 统一规范（字号/按钮/间距收敛）→ v3 全量换皮。
 > token 唯一来源：`assets/scripts/config/ThemeConfig.ts`（颜色/字体阶梯）
 > 与 `assets/scripts/config/GameTuning.ts`（布局数值）。

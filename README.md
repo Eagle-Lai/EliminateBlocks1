@@ -256,3 +256,27 @@ npm run shot:screens  # 5 关键屏 × 3 分辨率
 
 - 场景新增 `UIRoot`（四层 + `UIManager`），`GameEntry` 绑定其 `uiRoot`；入口仍是 Canvas 上的 cid 序列化组件。
 - 单测口径已从 29 项扩到 137 项；`npm test` 会依次跑三组。
+
+---
+
+## 12. v4 换皮「极光糖晶」（2026-11-25）
+
+全量视觉重设计：深靛紫极光背景 + 宝石果冻方块 + 立体厚边按钮 + 玻璃卡片/奶白弹窗。玩法、信息结构、交互、数据字段不变。
+规范与改动清单见 `docs/ui-style-aurora.md`。
+
+```bash
+npm run art:gen && npm run art:meta   # 美术（含分包背景同步）
+npm run ui:restyle                    # Prefab 换皮（幂等）
+npm run font:subset                   # 字体补字
+npm run smoke:release                 # 上线冒烟：6 种屏幕 × 34 项真实点击检查
+```
+
+| 验收项 | 结果 |
+|---|---|
+| typecheck + 单测 | 0 错误；29 + 82 + 28 项全过 |
+| verify:all（8 道门） | 全过：112 图 / 341 引用全命中 / 38 Prefab / 字体覆盖 436 字 / 总包 10.35MB ≤ 10.5MB |
+| smoke（玩法） | 得分、判负、结算、触摸均正常，无报错 |
+| smoke:ui（导航） | 5 条路径全过 |
+| smoke:release | 750×1334 / 390×844@3x / 360×640 / 360×828 / 768×1024 / 1280×720 全部 0 失败 |
+
+仍需真机确认：微信刘海屏安全区（已接 Widget 偏移，模拟器 insets=0 未覆盖）、低端机 Label 描边性能。
