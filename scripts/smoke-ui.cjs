@@ -22,7 +22,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
     await page.setViewport({ width: 750, height: 1334 });
     await page.goto(URL, { waitUntil: 'networkidle2', timeout: 60000 });
-    await sleep(6500);
+    await page.waitForFunction(() => window.cc?.js?.getClassByName('UIManager')?.instance
+        ?.debugStack().includes('panel:home'), { timeout: 30000 });
 
     const stack = () => page.evaluate(() => {
         const ui = cc.director.getScene().getChildByName('Canvas').getChildByName('UIRoot');
@@ -39,16 +40,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
     const checks = [];
     checks.push(['home', await stack()]);
-    await click(375, 717);
+    await click(375, 825);
     await sleep(1400);
     checks.push(['chapter', await stack()]);
     await click(105, 1237); // 返回
     await sleep(1000);
     checks.push(['back-home', await stack()]);
-    await click(375, 832);
+    await click(375, 987);
     await sleep(1400);
     checks.push(['daily', await stack()]);
-    await click(105, 1237);
+    await click(150, 1217);
     await sleep(800);
     await click(695, 107);
     await sleep(1000);
@@ -56,6 +57,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
     const bad = [];
     for (const [name, st] of checks) {
+        const expected = { home: 'panel:home', chapter: 'panel:chapterMap', 'back-home': 'panel:home', daily: 'panel:dailyPanel', settings: 'popup:settings' };
+        if (!st.includes(expected[name])) bad.push(`${name} 未进入预期界面`);
         const panels = st.filter((s) => s.startsWith('panel:'));
         const popups = st.filter((s) => s.startsWith('popup:'));
         console.log(`${name}: [${st.join(', ')}]`);

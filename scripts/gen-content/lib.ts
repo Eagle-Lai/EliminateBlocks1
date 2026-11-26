@@ -22,98 +22,42 @@ export function buildStableBoard(
     rng: Rng,
     opts: { density: number; stoneCount: number; colorCount?: number } ,
 ): BoardSpec {
+
     const cols = TUNING.board.cols;
     const rows = TUNING.board.rows;
     const colorCount = opts.colorCount ?? TUNING.board.colorCount;
-    const grid: (number | 'S' | null)[][] = [];
-    for (let r = 0; r < rows; r++) grid.push(new Array(cols).fill(null));
-
-    const filledRows = Math.max(3, Math.round(rows * opts.density));
-    const startRow = rows - filledRows;
-    let pid = 1;
-
-    const sameColorComponent = (r: number, c: number, color: number): number => {
-        const seen = new Set<string>();
-        const stack: Array<[number, number]> = [[r, c]];
-        let size = 0;
-        while (stack.length > 0) {
-            const [cr, cc] = stack.pop() as [number, number];
-            const key = `${cr},${cc}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            const v = grid[cr]?.[cc];
-            if (v !== color) continue;
-            size++;
-            for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-                const nr = cr + dr;
-                const nc = cc + dc;
-                if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
-                if (!seen.has(`${nr},${nc}`)) stack.push([nr, nc]);
-            }
-        }
-        return size;
-    };
-
-    for (let r = startRow; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            // 越靠下越容易被填满：底部留少量空洞避免瞬间满行
-            const keepHole = r >= rows - 2 && rng.next() < 0.18;
-            if (keepHole) continue;
-            let chosen = -1;
-            for (let attempt = 0; attempt < 12; attempt++) {
-                const color = rng.int(colorCount);
-                grid[r][c] = color;
-                if (sameColorComponent(r, c, color) < TUNING.rules.minGroupSize) {
-                    chosen = color;
+    const board = new BoardModel(cols, rows);
+    const well = rng.int(cols);
+    const depth = Math.round(rows * opts.density);
+    const heights = Array.from({ length: cols }, (_, c) => c === well ? 0 : Math.max(2, depth - 2 + rng.int(5)));
+    const occupied: Array<{ r: number; c: number }> = [];
+    for (let c = 0; c < cols; c++) {
+        for (let h = 0; h < heights[c]; h++) {
+            const r = rows - h - 1;
+            const first = rng.int(colorCount);
+            let placed = false;
+            for (let offset = 0; offset < colorCount; offset++) {
+                board.set(r, c, { type: (first + offset) % colorCount, pid: 1000 + r * cols + c });
+                if (findGroups(board, TUNING.rules.minGroupSize, true).length === 0) {
+                    placed = true;
                     break;
                 }
-                grid[r][c] = null;
             }
-            if (chosen < 0) {
-                // 无可放置色：留空（极少发生）
-                grid[r][c] = null;
-            } else {
-                pid++;
+            if (!placed) {
+                board.set(r, c, null);
+                break;
             }
+            occupied.push({ r, c });
         }
     }
-
-    // 石块：优先放在中部，避免直接填满顶行
-    let stones = 0;
-    let guard = 0;
-    while (stones < opts.stoneCount && guard < 400) {
-        guard++;
-        const r = rows - 1 - rng.int(Math.max(3, Math.floor(filledRows * 0.7)));
-        const c = rng.int(cols);
-        if (grid[r][c] === null || grid[r][c] === 'S') continue;
-        grid[r][c] = 'S';
-        stones++;
+    const stones = Math.min(opts.stoneCount, occupied.length);
+    for (let i = 0; i < stones; i++) {
+        const j = i + rng.int(occupied.length - i);
+        [occupied[i], occupied[j]] = [occupied[j], occupied[i]];
+        const { r, c } = occupied[i];
+        board.set(r, c, { kind: 'stone', type: -1, pid: -1 });
     }
-
-    const out: string[] = [];
-    for (let r = 0; r < rows; r++) {
-        let line = '';
-        for (let c = 0; c < cols; c++) {
-            const v = grid[r][c];
-            line += v === null ? '.' : v === 'S' ? 'S' : String(v);
-        }
-        out.push(line);
-    }
-
-    // 稳定性兜底：若仍有可消组，随机换色直到稳定
-    const board = BoardModel.fromPattern(out);
-    let tries = 0;
-    while (findGroups(board, TUNING.rules.minGroupSize, TUNING.rules.requireTwoPieces).length > 0 && tries < 60) {
-        tries++;
-        const r = rng.int(rows);
-        const c = rng.int(cols);
-        const b = board.get(r, c);
-        if (b && b.kind !== 'stone') board.set(r, c, { type: rng.int(colorCount), pid: 900000 + tries });
-    }
-
-    const finalRows = board.dump().split('\n');
-    const filled = board.blockCount();
-    return { rows: finalRows, density: filled / (rows * cols), stones };
+    return { rows: board.dump().split('\n'), density: occupied.length / (rows * cols), stones };
 }
 
 export function buildQueue(rng: Rng, count: number, colorCount = TUNING.board.colorCount): PieceSpec[] {

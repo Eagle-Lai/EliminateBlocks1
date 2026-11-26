@@ -77,7 +77,6 @@ FIXES = {
         "Panel/Text": {"label": {"fontSize": 24, "lineHeight": 30}, "color": [255, 196, 64]},
     },
     "Home.prefab": {
-        "Btn_Replay": {"size": [300, 72]},
     },
     os.path.join("..", "game", "HUD.prefab"): {
         "Title": {"label": {"fontSize": 16, "lineHeight": 20}},

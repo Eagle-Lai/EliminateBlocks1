@@ -1,13 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""字体门：cmap 覆盖 config/ 与 Prefab 里的全部字符。"""
+"""字体门：cmap 覆盖 config/app/view/controller 字符串（去注释）与 Prefab 里的全部字符。"""
 import glob, re, sys
 from fontTools.ttLib import TTFont
 
 FONT = 'assets/resources/font/game_sc.ttf'
+
+
+def strip_comments(src):
+    # 注释不会渲染：去掉 /* */ 与 // 注释后再统计（本项目文案字符串里不含 //）
+    src = re.sub(r'/\*.*?\*/', '', src, flags=re.S)
+    return re.sub(r'//[^\n]*', '', src)
+
+
+SOURCES = (
+    ['assets/scripts/core/DailyPuzzle.ts']
+    + glob.glob('assets/scripts/config/**/*.ts', recursive=True)
+    + glob.glob('assets/scripts/app/**/*.ts', recursive=True)
+    + glob.glob('assets/scripts/view/**/*.ts', recursive=True)
+    + glob.glob('assets/scripts/controller/**/*.ts', recursive=True)
+)
 chars = set()
-for p in glob.glob('assets/scripts/config/**/*.ts', recursive=True) + glob.glob('assets/scripts/app/**/*.ts', recursive=True):
-    for ch in open(p, encoding='utf-8').read():
+for p in SOURCES:
+    for ch in strip_comments(open(p, encoding='utf-8').read()):
         if ord(ch) > 127:
             chars.add(ch)
 for p in glob.glob('assets/resources/prefabs/**/*.prefab', recursive=True):

@@ -11,7 +11,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx tests/core.test.ts && tsx tests/gameplay.test.ts && tsx tests/content.test.ts",
+    "test": "tsx tests/core.test.ts && tsx tests/gameplay.test.ts && tsx tests/content.test.ts && node tests/storage.test.cjs && node tests/controller.test.cjs",
     "smoke": "node scripts/smoke.cjs",
     "serve:build": "python -m http.server 8123 --directory build/web-mobile",
     "mcp:check": "node scripts/mcp-check.cjs",
@@ -30,6 +30,10 @@
     "verify:package": "node scripts/verify-package.cjs",
     "verify:all": "node scripts/verify-all.cjs",
     "shot:screens": "node scripts/shot-screens.cjs",
-    "smoke:ui": "node scripts/smoke-ui.cjs"
+    "smoke:ui": "node scripts/smoke-ui.cjs",
+    "smoke:modes": "node scripts/smoke-modes.cjs",
+    "ui:restyle": "python scripts/ui/restyle-v4.py",
+    "font:subset": "python scripts/ui/subset-font.py",
+    "smoke:release": "node scripts/smoke-release.cjs"
   }
 }

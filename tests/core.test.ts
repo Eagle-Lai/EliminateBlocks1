@@ -17,6 +17,16 @@ import { Rng } from '../assets/scripts/utils/Rng';
 import { CancelToken, CancelError } from '../assets/scripts/utils/CancelToken';
 import { TUNING } from '../assets/scripts/config/GameTuning';
 
+import { simulateSettle, simulateLock, applyBurst } from '../assets/scripts/core/Simulator';
+import { expandSpecial, countSpecials } from '../assets/scripts/core/SpecialResolver';
+import { emptyModifiers } from '../assets/scripts/core/Modifiers';
+import { TalentPool } from '../assets/scripts/core/TalentPool';
+import { MutationRuntime } from '../assets/scripts/core/MutationRuntime';
+import { QueuePieceSource } from '../assets/scripts/core/PieceSource';
+import { InputRecorder, trimReplay, replayBytes, isReplayData } from '../assets/scripts/core/InputRecorder';
+import { ReplayPlayer } from '../assets/scripts/core/ReplayPlayer';
+import { ShadowTrack } from '../assets/scripts/core/ShadowTrack';
+
 let passed = 0;
 function test(name: string, fn: () => void | Promise<void>): Promise<void> {
     return Promise.resolve()
@@ -360,6 +370,178 @@ async function main(): Promise<void> {
         const factory = new PieceFactory(new Rng(3), 10, 5);
         const p = factory.createByShape(1); // O 形，宽 2
         assert.equal(p.x, 4);
+    });
+
+    await test('消行交付全部实际移除块，使用本锁等级与全局天赋', () => {
+        const board = BoardModel.fromPattern([...Array(15).fill('..........'), 'S012340123']);
+        const result = simulateSettle(board, { level: 3 });
+        assert.equal(result.rows, 1);
+        assert.equal(result.gain, 600);
+        assert.equal(result.removedCells, 10);
+        assert.equal(result.removed.filter(cell => cell.kind === 'stone').length, 1);
+        const mods = { ...emptyModifiers(), scoreMul: 1.25, rowsScoreBonus: 40 };
+        assert.equal(new ScoreService().computeRowScore(1, 3, mods), 800);
+    });
+
+    await test('两种特效覆盖同一额外格，仅算一次；范围内糖不再次触发', async () => {
+        const board = newBoard();
+        board.set(15, 0, { type: 0, pid: 1, special: 'stripeH' });
+        board.set(15, 1, b(0, 2));
+        board.set(15, 2, { type: 0, pid: 3, special: 'bomb' });
+        board.set(15, 4, { type: 1, pid: 4, special: 'stripeV' });
+        board.set(15, 3, b(1, 4));
+        board.set(14, 4, b(3, 7));
+        const sim = board.clone();
+        const score = new ScoreService();
+        const rules = { expandPop: (_info: PopInfo, base: readonly { r: number; c: number }[]) => expandSpecial(board, base).cells };
+        const pipe = new ResolvePipeline(board, score, new LevelService(), {
+            onPop: () => {}, onRowClear: () => {}, onSync: async () => {},
+            onScore: () => {}, onLevelUp: () => {}, wait: async () => {},
+        }, rules);
+        await pipe.run(new CancelToken());
+        const result = simulateSettle(sim);
+        assert.equal(score.score, 90 + 45);
+        assert.equal(result.gain, score.score);
+        assert.equal(result.removedCells, 5);
+        assert.equal(sim.dump(), board.dump());
+        assert.equal(board.get(15, 4)?.type, 3);
+    });
+
+    await test('第3个特殊糖淘汰最老糖，给分并生成在刚落下的格子', () => {
+        const board = newBoard();
+        board.set(15, 0, { type: 2, pid: 4, special: 'cross', specialOrder: 9 });
+        board.set(15, 1, { type: 1, pid: 5, special: 'bomb', specialOrder: 4 });
+        for (let c = 4; c < 7; c++) board.set(15, c, b(0, 7));
+        const result = simulateLock(board, [{ r: 0, c: 0 }], 7, 15, 0, 8, { specials: true });
+        assert.equal(countSpecials(board), 2);
+        assert.equal(result.gain, 150 + TUNING.specials.overflowScore);
+        assert.equal(board.get(15, 1), null);
+        assert.equal(board.get(15, 7)?.special, 'stripeH');
+    });
+
+    await test('倒悬踢墙沿反重力方向，磁力在触底时沿同列反向', () => {
+        const board = newBoard();
+        const piece = QueuePieceSource.build({ shape: 0, color: 0 }, 10, 1);
+        piece.y = 2;
+        assert.ok(tryRotate(piece, board, -1));
+        assert.equal(piece.y, 3);
+        const rng = new Rng(4);
+        const column = rng.int(10);
+        const mutation = new MutationRuntime(8, 'strong', new Rng(4));
+        board.set(15, column, b(1, 8));
+        mutation.onLock(board, 3, 0);
+        assert.equal(board.get(15, column), null);
+        assert.equal(board.get(14, column)?.pid, 8);
+    });
+
+    await test('传说抽签落空后的补位池只能产生普通或稀有', () => {
+        for (const seed of [3735, 23, 77]) {
+            const offer = TalentPool.offer(new Rng(seed), { owned: [], legendaryUsed: false });
+            assert.ok(offer.filter(t => t.rarity === 'legendary').length <= 1);
+            const used = TalentPool.offer(new Rng(seed), { owned: [], legendaryUsed: true });
+            assert.equal(used.some(t => t.rarity === 'legendary'), false);
+        }
+    });
+
+    await test('糖爆直接移除块按原色返回，半径一格不穿过对角', () => {
+        const board = newBoard();
+        board.set(14, 3, b(0, 3));
+        board.set(14, 4, b(2, 4));
+        board.set(15, 4, b(2, 5));
+        let removed: number[] = [];
+        applyBurst(board, 0, 1, blocks => { removed = blocks.map(cell => cell.pid); });
+        assert.deepEqual(removed.sort(), [3, 4]);
+        assert.equal(board.get(15, 4)?.pid, 5);
+    });
+
+    await test('新回放支持中途寻址，撤销后再录，裁剪后保留正确初盘、分数和特殊类型', () => {
+        const board = newBoard();
+        const trace = new InputRecorder(1, 'daily', board.dump().split('\n'), 'sample');
+        for (let i = 0; i < 100; i++) {
+            trace.recordLock({ shape: 1, color: 0, rotation: 0, x: 4, y: 14 });
+            board.set(15, 4, { type: i % 5, pid: i + 1, special: 'cross', specialOrder: i + 1 });
+            trace.recordFrame(board, i * 5);
+        }
+        const saved = trace.capture();
+        trace.recordTalent(29);
+        trace.recordFrame(board, 999);
+        trace.restore(saved);
+        trace.recordBurst(2);
+        board.set(15, 4, null);
+        trace.recordFrame(board, 500);
+        // 同一动作在存盘前再提交也必须保留其移除增量。
+        trace.recordFrame(board, 505);
+        const data = trace.finalize(505);
+        assert.ok(isReplayData(JSON.parse(JSON.stringify(data))));
+        assert.equal(isReplayData({ ...data, frames: [] }), false);
+        assert.equal(isReplayData({ ...data, actions: [null] }), false);
+        const second = ReplayPlayer.renderAt(data, 2);
+        assert.equal(second.locks, 2);
+        assert.equal(second.board.get(15, 4)?.specialOrder, 2);
+        const limited = trimReplay(data, 3000);
+        assert.ok(replayBytes(limited) <= 3000);
+        assert.ok(isReplayData(JSON.parse(JSON.stringify(limited))));
+        assert.equal(limited.partial, true);
+        assert.ok(limited.initialLocks! > 0);
+        assert.equal(ReplayPlayer.verify(limited), true);
+        const end = ReplayPlayer.renderAt(limited, limited.actions.length);
+        assert.equal(end.locks, 100);
+        assert.equal(end.board.dump(), board.dump());
+        assert.equal(end.score, 505);
+        assert.ok(limited.actions.every(a => a.t !== 'talent'));
+    });
+
+    await test('V2 末盘校验能发现丢失方块和一致改错的分数', () => {
+        const board = newBoard();
+        const trace = new InputRecorder(1, 'endless', board.dump().split('\n'), 'v2');
+        trace.recordLock({ shape: 1, color: 0, rotation: 0, x: 4, y: 14 });
+        for (const dr of [0, 1]) for (const dc of [0, 1]) board.set(14 + dr, 4 + dc, b(0, 1));
+        trace.recordFrame(board, 0);
+        const data = trace.finalize(0);
+        assert.ok(ReplayPlayer.verify(data));
+        const frame = data.frames![0];
+        assert.equal(ReplayPlayer.verify({ ...data, frames: [{ ...frame, cells: [] }] }), false);
+        assert.equal(ReplayPlayer.verify({ ...data, frames: [{ ...frame, score: 999 }], score: 999 }), false);
+        const oldV2 = { ...data, finalChecksum: undefined };
+        assert.ok(isReplayData(oldV2));
+        assert.equal(ReplayPlayer.renderAt(oldV2, 1).board.dump(), board.dump());
+        assert.equal(ReplayPlayer.verify(oldV2), false);
+    });
+
+    await test('旧回放仍可播放，缺少末盘证据时不标为已验证', () => {
+        const legacy = { version: 1 as const, id: 'v1', seed: 1, mode: 'endless', score: 0,
+            initialBoard: newBoard().dump().split('\n'), createdAt: 0, snapshots: [],
+            actions: [{ t: 'lock' as const, lock: 1, shape: 1, rotation: 0, color: 2, x: 4, y: 14 }] };
+        assert.ok(isReplayData(legacy));
+        const state = ReplayPlayer.simulate(legacy);
+        assert.equal(state.locks, 1);
+        assert.equal(ReplayPlayer.verify(legacy), false);
+        const snap = { lock: 1, score: 0, board: state.dump };
+        assert.ok(ReplayPlayer.verify({ ...legacy, snapshots: [snap] }));
+        assert.equal(isReplayData({ ...legacy, actions: [{ ...legacy.actions[0], shape: -1 }] }), false);
+    });
+
+    await test('损坏的影子样本可跳过，剩余点继续插值及反超', () => {
+        const shadow = new ShadowTrack(5000, 2);
+        const record = { bestScore: 100, seed: 1, recordId: 'old' };
+        shadow.load({ ...record, samples: [null] });
+        assert.equal(shadow.at(5000), 0);
+        assert.equal(shadow.feed(5000, 20), false);
+        shadow.load({ ...record, samples: [null, { t: 5000, score: 100 }, { t: -1, score: 0 },
+            { t: Infinity, score: 8 }, { t: 0, score: 0 }, { t: 0, score: 5 },
+            { t: 1, score: NaN }, { t: 2, score: -1 }, { t: 3, score: 150 }] });
+        assert.equal(shadow.at(2500), 50);
+        assert.equal(shadow.at(5000), 100);
+        assert.ok(shadow.feed(2500, 51));
+    });
+
+    await test('新局采样独立于历史最佳曲线', () => {
+        const shadow = new ShadowTrack(5000, 120);
+        shadow.load({ bestScore: 100, samples: [{ t: 0, score: 0 }, { t: 5000, score: 100 }], seed: 1, recordId: 'A' });
+        shadow.sample(5000, 200);
+        assert.equal(shadow.at(5000), 100);
+        assert.ok(shadow.feed(5000, 200));
+        assert.deepEqual(shadow.toState(200, 2, 'B').samples, [{ t: 5000, score: 200 }]);
     });
 
     console.log(`\n全部通过：${passed} 项`);

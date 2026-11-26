@@ -4,10 +4,19 @@
 
   /* Add your custom configuration here. */
   "compilerOptions": {
+    "types": [],
     "strict": false,
     /* 引擎自带的 cc.d.ts 未做到完全自洽（GPU/WebXR 等可选类型），跳过库检查 */
     "skipLibCheck": true
   },
+  /* 使用显式工程路径，编辑器扩展从其他工作目录检查脚本时也能找到引擎声明。 */
+  "files": [
+    "temp/declarations/cc.d.ts",
+    "temp/declarations/cc.custom-macro.d.ts",
+    "temp/declarations/cc.env.d.ts",
+    "temp/declarations/jsb.d.ts"
+  ],
+  "include": ["assets/**/*.ts"],
   /* 单测跑在 Node 上（npx tsx），不参与引擎工程编译 */
   "exclude": ["tests", "scripts", "node_modules", "library", "temp", "build"]
 }

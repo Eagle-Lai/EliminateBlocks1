@@ -3,6 +3,8 @@
  * 运行：npx tsx tests/content.test.ts
  */
 import assert from 'node:assert';
+import { readFileSync } from 'node:fs';
+import { verifyDaily, type Move } from '../scripts/gen-content/daily-proof';
 import { LEVELS, CHAPTERS, chapterCleared, chapterUnlocked } from '../assets/scripts/config/LevelTable';
 import { DAILY_INDEX } from '../assets/scripts/config/DailyIndex';
 import { PUZZLES_2027_01 } from '../assets/scripts/config/daily/2027-01';
@@ -133,10 +135,10 @@ test('步数与难度一致', () => {
     const limits: Record<string, number> = { easy: 10, medium: 8, mediumPlus: 7, hard: 6 };
     for (const p of ALL_DAILY) assert.equal(p.moveLimit, limits[p.difficulty], `day ${p.dayOfYear}`);
 });
-test('盘面 16×10 且初始稳定', () => {
+test('365 题无预消、默认首落无消除；每条输入解限步达标', () => {
+    const witnesses = JSON.parse(readFileSync('scripts/gen-content/daily-solutions.json', 'utf8')) as Record<number, Move[]>;
     for (const p of ALL_DAILY) {
-        assert.equal(p.board.length, 16);
-        for (const row of p.board) assert.equal(row.length, 10);
+        assert.doesNotThrow(() => verifyDaily(p, witnesses[p.id]), `day ${p.id}`);
     }
 });
 test('目标值为正', () => {

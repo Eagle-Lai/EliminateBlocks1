@@ -17,13 +17,16 @@ const walk = (dir, out = []) => {
     return out;
 };
 
-// 1) 图片 100 张
+// 1) 图片 112 张 = resources/art 105（v3 的 100 + v4 新增 ghost_fill/ghost_border/ctrl_settings/ctrl_undo/ctrl_burst）
+//    + bundles 7（ch1..ch6 / daily 局内背景，与 art/bg 同源，由 gen_art.py 同步）
 const artRoot = path.join(ROOT, 'assets/resources/art');
 const images = [
     ...walk(artRoot),
     ...walk(path.join(ROOT, 'assets/bundles')),
 ].filter((f) => /\.(png|jpg)$/i.test(f) && !f.includes('prefabs'));
-ok(images.length === 100, `图片数 ${images.length} ≠ 100`);
+// 六张章节插画和一张启动海报。
+const EXPECTED_IMAGES = 112 + 6 + 1;
+ok(images.length === EXPECTED_IMAGES, `图片数 ${images.length} ≠ ${EXPECTED_IMAGES}`);
 for (const f of images) ok(fs.statSync(f).size > 0, `0 字节图片：${f}`);
 
 // 2) 音频：56 SFX + 8 BGM
@@ -93,4 +96,4 @@ if (errors.length > 0) {
     for (const e of errors.slice(0, 40)) console.error(' -', e);
     process.exit(1);
 }
-console.log(`[verify-assets] OK：100 图 / 56 SFX / 8 BGM / 1 字体 / 38 Prefab / 引用 ${refCount} 个全部命中`);
+console.log(`[verify-assets] OK：${EXPECTED_IMAGES} 图 / 56 SFX / 8 BGM / 1 字体 / 38 Prefab / 引用 ${refCount} 个全部命中`);

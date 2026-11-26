@@ -276,7 +276,7 @@ async function buildBanner() {
   const p = node('Panel', root, 320, 52);
   const s = await sprite(p, 'art/ui/panel_strip');
   const t = node('Text', p, 300, 52);
-  const l = label(t, '连锁 x2', { size: 26, bold: true, color: [255, 209, 102] });
+  const l = label(t, '连锁 ×2', { size: 26, bold: true, color: [255, 209, 102] });
   addAnim(p, ['banner-in']);
   attach(root, 'BannerView', { panel: p, label: l, bg: s });
   return root;
@@ -374,7 +374,7 @@ async function buildHud() {
   const brand = node('Brand', root, 220, 34, -250, 54);
   const brandL = label(brand, '落块消消', { size: 28, bold: true, align: 'left' });
   const title = node('Title', root, 220, 24, -250, 22);
-  const titleL = label(title, 'TETRIS MATCH', { size: 15, color: [139, 115, 85], align: 'left' });
+  const titleL = label(title, '无尽模式', { size: 15, color: [139, 115, 85], align: 'left' });
 
   const badgeHost = node('MutationBadgeHost', root, 200, 52, 40, 54);
   const bIcon = node('Icon', badgeHost, 40, 40, -72, 0);
@@ -417,7 +417,7 @@ async function buildHud() {
 
   const nextCard = await panel(root, 'NextCard', 110, 96, 280, -34);
   const nt = node('NextTitle', nextCard, 90, 20, 0, 30);
-  label(nt, 'NEXT', { size: 14, color: [139, 115, 85] });
+  label(nt, '下一块', { size: 14, color: [139, 115, 85] });
   const nextSprites = [];
   for (let i = 0; i < 4; i++) {
     const n = node('NextCell_' + i, nextCard, 22, 22);
@@ -619,7 +619,7 @@ async function buildBoot() {
   const tip = node('Tip', root, 520, 40, 0, -150);
   const tipL = label(tip, '正在准备糖果…', { size: 20, color: [139, 115, 85] });
   const ver = node('Version', root, 220, 30, 0, -600);
-  const verL = label(ver, 'v2.0.0', { size: 16, color: [139, 115, 85] });
+  const verL = label(ver, '版本 2.0.0', { size: 16, color: [139, 115, 85] });
   attach(root, 'BootView', {
     logo: logo.getComponent(cc.Sprite),
     bar: comp(bar, 'ProgressBarView'),
@@ -648,7 +648,6 @@ async function buildHome() {
   const endless = await button(root, 'Btn_Endless', '无尽模式', 'primary', 420, 110, 0, 80, 34);
   const levels = await button(root, 'Btn_Levels', '关卡模式', 'secondary', 420, 100, 0, -50, 30);
   const daily = await button(root, 'Btn_Daily', '每日残局', 'secondary', 420, 100, 0, -165, 30);
-  const replay = await button(root, 'Btn_Replay', '观看最佳局', 'ghost', 300, 70, 0, -265, 24);
   const settings = await button(root, 'Btn_Settings', '设', 'icon', 80, 80, 320, 560, 28);
   const hint = node('Hint', root, 600, 40, 0, -560);
   const hintL = label(hint, '拖动移动 · 轻点旋转', { size: 18, color: [139, 115, 85] });
@@ -658,7 +657,6 @@ async function buildHome() {
     endlessBtn: endless.btn,
     levelsBtn: levels.btn,
     dailyBtn: daily.btn,
-    replayBtn: replay.btn,
     settingsBtn: settings.btn,
     coinLabel,
     bestLabel,
@@ -753,9 +751,9 @@ async function buildChapterMap() {
 async function buildDayCell() {
   const root = node('DayCell', null, 84, 52);
   const s = await sprite(root, 'art/ui/panel_card');
-  const today = node('Today', root, 84, 52);
-  await sprite(today, 'art/ui/frame_gold');
-  today.active = false;
+  const selection = node('Selected', root, 84, 52);
+  await sprite(selection, 'art/ui/frame_gold');
+  selection.active = false;
   const d = node('Day', root, 70, 28, 0, 8);
   const dL = label(d, '1', { size: 18, bold: true });
   const st = node('State', root, 70, 16, 0, -12);
@@ -766,7 +764,7 @@ async function buildDayCell() {
   const b = root.addComponent(cc.js.getClassByName('UIButton'));
   b.skin = 'secondary';
   b.bg = s;
-  attach(root, 'DayCellView', { dayLabel: dL, stateLabel: stL, star, today, button: b });
+  attach(root, 'DayCellView', { dayLabel: dL, stateLabel: stL, star, selection, button: b });
   return root;
 }
 
@@ -876,7 +874,7 @@ async function buildDialog() {
   await sprite(mask, 'art/ui/mask');
   const card = await panel(root, 'Card', 600, 560, 0, 20, 'art/ui/panel_popup');
   const tag = node('Tag', card, 500, 28, 0, 224);
-  const tagL = label(tag, 'GAME OVER', { size: 18, color: [139, 115, 85] });
+  const tagL = label(tag, '本局结束', { size: 18, color: [139, 115, 85] });
   const title = node('Title', card, 500, 50, 0, 178);
   const titleL = label(title, '堆到顶了', { size: 36, bold: true });
   const score = node('Score', card, 500, 90, 0, 102);

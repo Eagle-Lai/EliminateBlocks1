@@ -70,16 +70,16 @@ async function readState(page) {
 
     await page.goto(URL, { waitUntil: 'networkidle2', timeout: 60000 });
     await sleep(6500);
-    // 首页 → 无尽模式（设计坐标 0,80）
-    await page.mouse.click(375, 587);
+    // 首页 → 无尽模式（设计坐标 0,4）
+    await page.mouse.click(375, 663);
     await sleep(1600);
     console.log('initial:', JSON.stringify(await waitForController(page)));
     await sleep(600);
     await page.screenshot({ path: path.join(OUT_DIR, 'shot_start.png') });
 
     // 直落按钮位置（750×1334 设计分辨率下 1:1 映射）
-    const dropX = 515;
-    const dropY = 1194;
+    const dropX = 577;
+    const dropY = 1266;
     // 直落最多 30 落内得分即视为消除逻辑正常：
     // 直落会把方块堆进中间几列，若颜色恰好无竖向三连，塔会直接堆顶判负（纯随机，10 落判定过脆）
     let scored = false;

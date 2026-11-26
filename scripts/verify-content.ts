@@ -1,3 +1,7 @@
+import { verifyDaily, type Move } from './gen-content/daily-proof';
+import { RunBootstrapper } from '../assets/scripts/controller/RunBootstrapper';
+import { levelConfig } from '../assets/scripts/app/GameMode';
+import { GreedyBot } from '../assets/scripts/core/Solver';
 /**
  * 内容门：120 关 / 365 题 / 84 异变 / 每月 4 类目标 / 唯一性 / 索引无空洞。
  * 运行：npx tsx scripts/verify-content.ts
@@ -41,7 +45,14 @@ for (const l of LEVELS) {
     ok(l.target > 0, `#${l.id} 目标值非正`);
     ok(l.star2 > 0 && l.star3 > l.star2, `#${l.id} 星级未递增`);
     ok(validateMutationCombo([l.mutationId]) === null, `#${l.id} 异变禁忌`);
-    if (l.goalType === 'stone') ok(l.stoneCount === l.target + 2, `#${l.id} 石块数不等于 target+2`);
+    const config = levelConfig(l);
+    const board = RunBootstrapper.buildBoard(config);
+    if (l.goalType === 'stone') {
+        ok(l.stoneCount === l.target + 2, `#${l.id} 石块数不等于 target+2`);
+        ok(board.countKind('stone') === l.stoneCount, `#${l.id} 实际铺石数不符`);
+    }
+    const run = new GreedyBot(config.seed, { mutationId: l.mutationId, tier: l.tier }).play(board, 120, config.goal!);
+    ok(run.done, `#${l.id} 正式种子校准机器人未达标，进度 ${run.goalValue}/${l.target}`);
     if (l.goalType === 'color') ok(l.goalColor !== undefined && l.goalColor >= 0 && l.goalColor <= 4, `#${l.id} 目标色非法`);
 }
 let same = 1;
@@ -59,8 +70,11 @@ for (const month of MONTHS) {
     ok(new Set(month.map((p) => p.goal.type)).size === 4, `某月目标类型不足 4 类`);
 }
 ok(DAILY.every((p) => p.verified), '存在未校验题目');
+const witnesses = JSON.parse(readFileSync('scripts/gen-content/daily-solutions.json', 'utf8')) as Record<number, Move[]>;
+ok(Object.keys(witnesses).length === DAILY.length, '参考解数量错误');
 const seen = new Set<string>();
 for (const p of DAILY) {
+    try { verifyDaily(p, witnesses[p.id]); } catch (e) { errors.push(`day ${p.id}: ${e}`); }
     const key = `${p.board.join('|')}#${p.queue.map((q) => `${q.shape}${q.color}`).join(',')}`;
     ok(!seen.has(key), `题目重复：day ${p.dayOfYear}`);
     seen.add(key);

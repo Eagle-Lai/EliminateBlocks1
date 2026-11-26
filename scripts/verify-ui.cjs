@@ -36,9 +36,21 @@ for (const dir of DIRS) {
     }
 }
 
+// 预制体的默认文案也会在资源加载或首帧时显示。
+const prefabRoot = path.join(ROOT, 'assets/resources/prefabs');
+for (const group of fs.readdirSync(prefabRoot, { withFileTypes: true }).filter(entry => entry.isDirectory())) {
+    const folder = path.join(prefabRoot, group.name);
+    for (const name of fs.readdirSync(folder).filter(name => name.endsWith('.prefab'))) {
+        const components = JSON.parse(fs.readFileSync(path.join(folder, name), 'utf8'));
+        for (const label of components.filter(item => item.__type__ === 'cc.Label')) {
+            if (/[A-Za-z]/.test(label._string)) hits.push(`${name} 包含英文文案：${label._string}`);
+        }
+    }
+}
+
 if (hits.length > 0) {
-    console.error('[verify-ui] 发现运行时拼 UI：');
+    console.error('[verify-ui] 界面校验失败：');
     for (const h of hits) console.error(' -', h);
     process.exit(1);
 }
-console.log('[verify-ui] OK：view/ ui/ controller/ 0 处运行时拼 UI');
+console.log('[verify-ui] OK：view/ ui/ controller/ 0 处运行时拼 UI，预制体无英文文案');

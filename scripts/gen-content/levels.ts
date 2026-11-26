@@ -107,7 +107,8 @@ function targetFor(chapter: number, slot: number, goal: GoalType, base: number, 
         case 'burst':
             return Math.min(3, 1 + Math.floor(slot / 13) + Math.floor((chapter - 1) / 3));
         case 'stone':
-            return Math.min(16, 8 + (chapter - 1) * 2);
+            // Two rows, each with two gaps, hold 16 stones including the two spare stones.
+            return Math.min(14, 8 + (chapter - 1) * 2);
         default:
             return 1;
     }
@@ -163,89 +164,61 @@ function goalOf(level: LevelRow): GoalDef {
     return { type: level.goalType, target: level.target, color: level.goalColor };
 }
 
-interface LevelMeasure {
-    scores: number[];
-    goals: number[];
-}
+
+interface LevelMeasure { scores: number[]; goals: number[]; won: boolean[]; }
 
 function measure(levels: LevelRow[], seeds: number, locks: number): Map<number, LevelMeasure> {
     const out = new Map<number, LevelMeasure>();
     for (const level of levels) {
         const board = boardFor(level);
-        const m: LevelMeasure = { scores: [], goals: [] };
+        const m: LevelMeasure = { scores: [], goals: [], won: [] };
         for (let i = 0; i < seeds; i++) {
-            const bot = new GreedyBot(level.seed + i * 131, { dir: level.mutationId === 4 ? -1 : 1 });
-            const res = bot.play(board, locks, { type: level.goalType, target: 999999, color: level.goalColor }, 5);
+            const bot = new GreedyBot(level.seed + i * 131, { mutationId: level.mutationId, tier: level.tier });
+            const res = bot.play(board, locks, goalOf(level));
             m.scores.push(res.score);
             m.goals.push(res.goalValue);
+            m.won.push(res.done);
         }
         out.set(level.id, m);
     }
     return out;
 }
 
-function quantile(values: number[], q: number): number {
+function quantile(values: number[], fraction: number): number {
     const arr = values.slice().sort((a, b) => a - b);
-    if (arr.length === 0) return 0;
-    const idx = Math.max(0, Math.min(arr.length - 1, Math.floor(q * (arr.length - 1))));
-    return arr[idx];
+    return arr[Math.floor((arr.length - 1) * fraction)] ?? 0;
 }
 
-/** 按实测能力标定 target 与星级门槛；返回是否改动 */
-function calibrate(levels: LevelRow[], nominal: LevelRow[], measured: Map<number, LevelMeasure>): number {
-    let changed = 0;
+function calibrateGoals(levels: LevelRow[], measurements: Map<number, LevelMeasure>): boolean {
+    let changed = false;
     for (const level of levels) {
-        const m = measured.get(level.id);
-        if (!m) continue;
-        const nom = nominal.find((x) => x.id === level.id) as LevelRow;
-        const goalBest = quantile(m.goals, 0.5);
-        if (level.goalType === 'score') {
-            const cap = round50(Math.max(200, m.scores[Math.floor(m.scores.length / 2)] * 0.8));
-            level.target = Math.min(nom.target, cap);
-        } else {
-            level.target = Math.max(1, Math.min(nom.target, Math.floor(goalBest * 0.85)));
-        }
-        if (level.goalType === 'stone') level.stoneCount = level.target + 2;
-        // 星级：规范值 vs 实测分位取较大者，保证 2★ 约 55–60%、3★ ≤30%
-        const q45 = round50(quantile(m.scores, 0.45));
-        const q80 = round50(quantile(m.scores, 0.8));
-        level.star2 = Math.max(round50(level.target * 1.2), Math.min(nom.star2, q45));
-        // 3★ 取第 4 名分数（5 种子 → 约 20% 达成），留出 ≤30% 的门限余量
-        level.star3 = Math.max(nom.star3, round50(q80 * 1.02), round50(level.star2 * 1.4));
-        if (level.target !== nom.target || level.star2 !== nom.star2 || level.star3 !== nom.star3) changed++;
+        const m = measurements.get(level.id)!;
+        const cap = Math.min(m.goals[0], quantile(m.goals, 0.25));
+        if (cap >= level.target) continue;
+        const target = level.goalType === 'score' ? Math.max(50, Math.floor(cap / 50) * 50) : Math.max(1, cap);
+        if (target === level.target) continue;
+        level.target = target;
+        if (level.goalType === 'stone') level.stoneCount = target + 2;
+        changed = true;
     }
     return changed;
 }
 
-function evaluate(levels: LevelRow[], seeds: number, locks: number): {
-    one: number;
-    two: number;
-    three: number;
-    perLevel: Map<number, { one: number; two: number; three: number }>;
-} {
+function evaluate(levels: LevelRow[], measurements: Map<number, LevelMeasure>) {
     const perLevel = new Map<number, { one: number; two: number; three: number }>();
-    let one = 0;
-    let two = 0;
-    let three = 0;
-    let total = 0;
-    for (const level of levels) {
-        const board = boardFor(level);
-        let hit1 = 0;
-        let hit2 = 0;
-        let hit3 = 0;
-        for (let i = 0; i < seeds; i++) {
-            const bot = new GreedyBot(level.seed + i * 131, { dir: level.mutationId === 4 ? -1 : 1 });
-            // 星级评估不能"达成立刻收手"：目标设为无穷，打满全程再看总分
-            const res = bot.play(board, locks, { type: level.goalType, target: 999999, color: level.goalColor }, 5);
-            if (res.goalValue >= level.target) hit1++;
-            if (res.score >= level.star2) hit2++;
-            if (res.score >= level.star3) hit3++;
+    let one = 0, two = 0, three = 0, total = 0;
+    for (const l of levels) {
+        const m = measurements.get(l.id)!;
+        const wins = m.scores.filter((_, i) => m.won[i]);
+        if (wins.length) {
+            // End scores can tie: keep distinct thresholds and report observed rates as measured.
+            l.star2 = Math.max(l.goalType === 'score' ? l.target + 1 : 1, quantile(wins, 0.5));
+            l.star3 = Math.max(l.star2 + 1, Math.max(...wins));
         }
-        perLevel.set(level.id, { one: hit1 / seeds, two: hit2 / seeds, three: hit3 / seeds });
-        one += hit1;
-        two += hit2;
-        three += hit3;
-        total += seeds;
+        const hit2 = wins.filter(s => s >= l.star2).length, hit3 = wins.filter(s => s >= l.star3).length;
+        const n = m.scores.length;
+        perLevel.set(l.id, { one: wins.length / n, two: hit2 / n, three: hit3 / n });
+        one += wins.length; two += hit2; three += hit3; total += n;
     }
     return { one: one / total, two: two / total, three: three / total, perLevel };
 }
@@ -270,6 +243,7 @@ function writeTable(levels: LevelRow[]): void {
     lines.push('    star3: number;');
     lines.push('    seed: number;');
     lines.push('    stoneSeed?: number;');
+    lines.push('    stoneCount?: number;');
     lines.push('}');
     lines.push('');
     lines.push('export const LEVELS: readonly LevelEntry[] = [');
@@ -371,7 +345,7 @@ function writeReport(
         '',
         '## 与标称公式的差异',
         '',
-        '下调过的关卡（target 列入表，星级门槛不变）：',
+        '以下列出主目标下调的关卡。星级按成功通关那一刻的得分分布计算。',
         '',
         ...levels
             .filter((l) => {
@@ -383,8 +357,8 @@ function writeReport(
                 return `- #${l.id} ${l.name}：${n.target} → ${l.target}`;
             }),
         '',
-        '> 说明：可达率用 `core/Solver.ts` 的 GreedyBot（等价于宽 8 / 深 40 的评估策略）测得；',
-        '> 目标只允许下调，公式（§7.3）与星级倍率保持原样。',
+        '> 仿真使用出生位可执行的旋转、平移、直落，按档位应用棋盘异变，天赋均跳过。固定种子加四个替代种子，单次最多尝试 120 次锁定。',
+        '> 达标即停，只在主目标已完成时计算二、三星。统计描述这组机器人操作，其他走法与真实玩家的达成率可能不同。',
     ];
     writeFileSync(join(ROOT, 'docs/level-report.md'), md.join('\n'), 'utf8');
 }
@@ -398,13 +372,18 @@ function main(): void {
     const levels = buildNominal();
 
     let measured = measure(levels, seeds, locks);
-    let adjustments = calibrate(levels, nominal, measured);
-
-    let stats = evaluate(levels, seeds, locks);
-    for (let round = 0; round < 2 && stats.one < 0.9; round++) {
+    for (let round = 0; round < 3 && calibrateGoals(levels, measured); round++) {
         measured = measure(levels, seeds, locks);
-        adjustments += calibrate(levels, nominal, measured);
-        stats = evaluate(levels, seeds, locks);
+    }
+    const stats = evaluate(levels, measured);
+    const adjustments = levels.filter((l, i) => l.target !== nominal[i].target).length;
+    if (fast) {
+        console.log(`[levels] 短程试算 ${levels.length} 关，1 种子 × 30 锁，通关率 ${(stats.one * 100).toFixed(1)}%`);
+        return;
+    }
+    const missing = levels.filter(level => !measured.get(level.id)?.won[0]);
+    if (missing.length) {
+        throw new Error(`正式种子缺少可复现通关操作：${missing.map(level => level.id).join(', ')}`);
     }
 
     const ids = new Set(levels.map((l) => l.id));

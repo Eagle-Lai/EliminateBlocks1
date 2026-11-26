@@ -22,7 +22,7 @@ import { trimReplay, replayBytes, type ReplayData } from '../assets/scripts/core
 import { GreedyBot, placementsFor } from '../assets/scripts/core/Solver';
 import { ShadowTrack } from '../assets/scripts/core/ShadowTrack';
 import { captureUndo } from '../assets/scripts/controller/UndoSnapshot';
-import { difficultyForWeekday, DIFFICULTY_MOVE_LIMIT, monthDayFromDayOfYear, isMutationWeek, dateKey } from '../assets/scripts/core/DailyPuzzle';
+import { difficultyForWeekday, DIFFICULTY_MOVE_LIMIT, dayOfYearFromDate, monthDayFromDayOfYear, isMutationWeek, dateKey } from '../assets/scripts/core/DailyPuzzle';
 import { Rng } from '../assets/scripts/utils/Rng';
 import { CancelToken } from '../assets/scripts/utils/CancelToken';
 import { ResolvePipeline } from '../assets/scripts/core/ResolvePipeline';
@@ -545,6 +545,11 @@ async function main(): Promise<void> {
         assert.deepEqual(monthDayFromDayOfYear(1), { month: 1, day: 1 });
         assert.deepEqual(monthDayFromDayOfYear(32), { month: 2, day: 1 });
         assert.deepEqual(monthDayFromDayOfYear(365), { month: 12, day: 31 });
+    });
+    await test('日历按本地日期选题，闰日复用二月最后一题', () => {
+        for (const [month, day, expected] of [[1, 1, 1], [2, 28, 59], [2, 29, 59], [3, 1, 60], [12, 31, 365]]) {
+            assert.equal(dayOfYearFromDate(new Date(2028, month - 1, day, 0, 1)), expected);
+        }
     });
     await test('异变周 1–7 日', () => {
         assert.equal(isMutationWeek(1, 1), true);
